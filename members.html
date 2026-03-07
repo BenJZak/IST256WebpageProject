@@ -1,69 +1,112 @@
-<!DOCTYPE html>
-<html lang="en">
-   <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Member Registration</title>
-      <link rel="stylesheet" href="styles.css">
-      <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-   </head>
-   <body>
-      <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-         <div class="container">
-            <a class="navbar-brand" href="index.html">Club Portal</a>
+<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Member Registration</title>
+<!-- local styles first, mostly because I kept tweaking this page -->
+<link rel="stylesheet" href="styles.css">
+
+<!-- Bootstrap for the layout and quick form/table styling -->
+<link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+>
+</head> <body class="d-flex flex-column min-vh-100">
+<!-- main top nav -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a href="index.html" class="navbar-brand">Club Portal</a>
+
+        <button
+            class="navbar-toggler"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#mainNav"
+            aria-controls="mainNav"
+            aria-expanded="false"
+            aria-label="Toggle navigation"
+        >
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav ms-auto">
-               <li class="nav-item">
-                  <a class="nav-link" href="index.html">Home</a>
-               </li>
-               <li class="nav-item">
-                  <a class="nav-link active" href="members.html">Members</a>
-               </li>
+                <li class="nav-item">
+                    <a href="index.html" class="nav-link">Home</a>
+                </li>
+                <li class="nav-item">
+                    <!-- keeping this active here since this is the members page -->
+                    <a href="members.html" class="nav-link active">Members</a>
+                </li>
             </ul>
-         </div>
-      </nav>
-      <div class="container mt-5">
-         <h2>Member Registration</h2>
-         <form id="memberForm">
-            <div class="row">
-               <div class="col-md-6 mb-3">
-                  <label class="form-label">Member Name *</label>
-                  <input type="text" id="name" class="form-control" required>
-               </div>
-               <div class="col-md-6 mb-3">
-                  <label class="form-label">Email *</label>
-                  <input type="email" id="email" class="form-control" required>
-               </div>
-               <div class="col-md-6 mb-3">
-                  <label class="form-label">Year / Age *</label>
-                  <input type="number" id="year" class="form-control" required>
-               </div>
-               <div class="col-md-6 mb-3">
-                  <label class="form-label">Institution / Organization *</label>
-                  <input type="text" id="affiliation" class="form-control" required>
-               </div>
-               <div class="col-md-6 mb-3">
-                  <label class="form-label">Phone (Optional)</label>
-                  <input type="text" id="phone" class="form-control">
-               </div>
+        </div>
+    </div>
+</nav>
+
+<main class="container mt-5 flex-grow-1">
+    <h2 class="mb-4">Member Registration</h2>
+
+    <!-- registration form -->
+    <form id="memberForm">
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="name" class="form-label">Member Name *</label>
+                <input type="text" class="form-control" id="name" required>
             </div>
-            <button type="submit" class="btn btn-success">Add Member</button>
-         </form>
-         <hr>
-         <h3>Member Directory</h3>
-         <table class="table table-striped mt-3">
+
+            <div class="col-md-6 mb-3">
+                <label for="email" class="form-label">Email *</label>
+                <input type="email" class="form-control" id="email" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <!-- not 100% sure if this should be year level or actual age, leaving label as-is for now -->
+                <label for="year" class="form-label">Year / Age *</label>
+                <input type="number" class="form-control" id="year" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="affiliation" class="form-label">Institution / Organization *</label>
+                <input type="text" class="form-control" id="affiliation" required>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <label for="phone" class="form-label">Phone (Optional)</label>
+                <input type="text" class="form-control" id="phone">
+            </div>
+        </div>
+
+        <button class="btn btn-success" type="submit">Add Member</button>
+
+        <!-- might add a reset button later if this feels necessary -->
+        <!-- <button type="reset" class="btn btn-secondary ms-2">Clear</button> -->
+    </form>
+
+    <hr class="my-4">
+
+    <h3>Member Directory</h3>
+
+    <div class="table-responsive">
+        <table class="table table-striped mt-3">
             <thead>
-               <tr>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Year</th>
-                  <th>Affiliation</th>
-                  <th>Phone</th>
-                  <th>Actions</th>
-               </tr>
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Year</th>
+                    <th>Affiliation</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                </tr>
             </thead>
-            <tbody id="memberTable"></tbody>
-         </table>
-      </div>
-      <script src="script.js"></script>
-   </body>
-</html>
+            <tbody id="memberTable">
+                <!-- rows get inserted from script.js -->
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<footer class="text-center p-3 bg-light border-top mt-4">
+    <p class="mb-0">Student Club Portal © 2026</p>
+</footer>
+
+<script src="script.js"></script>
+
+<!-- bootstrap bundle includes popper, so one file is enough -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body> </html>

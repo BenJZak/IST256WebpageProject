@@ -1,99 +1,128 @@
-let members = JSON.parse(localStorage.getItem("members")) || [];
-let editIndex = -1;
+let membersList = JSON.parse(localStorage.getItem("members")) || [];
+let currentEditRow = -1; // using -1 here just to mean "not editing anything yet"
 
-const form = document.getElementById("memberForm");
-const table = document.getElementById("memberTable");
+const memberFormEl = document.getElementById("memberForm");
+const memberTableBody = document.getElementById("memberTable");
 
-displayMembers();
+// render whatever is already saved
+renderMembers();
 
-form.addEventListener("submit", function(e) {
+memberFormEl.addEventListener("submit", function (evt) {
+evt.preventDefault();
 
-    e.preventDefault();
+// grabbing values one by one... a bit repetitive, but it's easy to read later
+let memberName = document.getElementById("name").value.trim();
+let memberEmail = document.getElementById("email").value.trim();
+let memberYear = document.getElementById("year").value.trim();
+let memberAffiliation = document.getElementById("affiliation").value.trim();
+let memberPhone = document.getElementById("phone").value.trim();
 
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const year = document.getElementById("year").value;
-    const affiliation = document.getElementById("affiliation").value;
-    const phone = document.getElementById("phone").value;
+if (memberName === "" || memberEmail === "" || memberYear === "" || memberAffiliation === "") {
+    alert("Please fill in all required fields");
+    return;
+}
 
-    if (name === "" || email === "" || year === "" || affiliation === "") {
-        alert("Please fill in all required fields");
-        return;
-    }
+let memberData = {
+    name: memberName,
+    email: memberEmail,
+    year: memberYear,
+    affiliation: memberAffiliation,
+    phone: memberPhone
+};
 
-    const member = {
-        name,
-        email,
-        year,
-        affiliation,
-        phone
-    };
+if (currentEditRow === -1) {
+    membersList.push(memberData);
+} else {
+    // overwrite the old one if we're editing
+    membersList[currentEditRow] = memberData;
+    currentEditRow = -1;
+}
 
-    if (editIndex === -1) {
+saveMembersToStorage();
+memberFormEl.reset();
+renderMembers();
 
-        members.push(member);
-
-    } else {
-
-        members[editIndex] = member;
-        editIndex = -1;
-
-    }
-
-    localStorage.setItem("members", JSON.stringify(members));
-
-    form.reset();
-
-    displayMembers();
+// maybe later I could show a little success message here instead of doing nothing
 
 });
 
-function displayMembers() {
+function renderMembers() {
+memberTableBody.innerHTML = "";
 
-    table.innerHTML = "";
+if (membersList.length === 0) {
+    memberTableBody.innerHTML = `
+        <tr>
+            <td colspan="6" class="text-center">No members added yet</td>
+        </tr>
+    `;
+    return;
+}
 
-    members.forEach((member, index) => {
+for (let i = 0; i < membersList.length; i++) {
+    let item = membersList[i];
 
-        const row = `
-<tr>
-<td>${member.name}</td>
-<td>${member.email}</td>
-<td>${member.year}</td>
-<td>${member.affiliation}</td>
-<td>${member.phone}</td>
-<td>
-<button class="btn btn-warning btn-sm" onclick="editMember(${index})">Edit</button>
-<button class="btn btn-danger btn-sm" onclick="deleteMember(${index})">Delete</button>
-</td>
-</tr>
-`;
+    // keeping this as a template string because it's just faster to throw together
+    let newRow = `
+    <tr>
+        <td>${item.name}</td>
+        <td>${item.email}</td>
+        <td>${item.year}</td>
+        <td>${item.affiliation}</td>
+        <td>${item.phone || ""}</td>
+        <td>
+            <button class="btn btn-warning btn-sm" onclick="editMember(${i})">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteMember(${i})">Delete</button>
+        </td>
+    </tr>
+    `;
 
-        table.innerHTML += row;
-
-    });
+    memberTableBody.innerHTML += newRow;
+}
 
 }
 
+function saveMembersToStorage() {
+localStorage.setItem("members", JSON.stringify(membersList));
+}
+
 function deleteMember(index) {
+let confirmDelete = confirm("Remove this member?");
+if (!confirmDelete) {
+return;
+}
 
-    members.splice(index, 1);
+membersList.splice(index, 1);
+saveMembersToStorage();
+renderMembers();
 
-    localStorage.setItem("members", JSON.stringify(members));
+// edge case: if the user deletes while editing, reset edit mode
+if (currentEditRow === index) {
+    currentEditRow = -1;
+    memberFormEl.reset();
+}
 
-    displayMembers();
+// not perfect, but good enough for now
 
 }
 
 function editMember(index) {
+let selectedMember = membersList[index];
 
-    const member = members[index];
+document.getElementById("name").value = selectedMember.name;
+document.getElementById("email").value = selectedMember.email;
+document.getElementById("year").value = selectedMember.year;
+document.getElementById("affiliation").value = selectedMember.affiliation;
+document.getElementById("phone").value = selectedMember.phone;
 
-    document.getElementById("name").value = member.name;
-    document.getElementById("email").value = member.email;
-    document.getElementById("year").value = member.year;
-    document.getElementById("affiliation").value = member.affiliation;
-    document.getElementById("phone").value = member.phone;
+currentEditRow = index;
 
-    editIndex = index;
+// I usually like scrolling back to the form when editing
+window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+});
+
+// could also change the button text to "Update Member" later
+// document.querySelector('button[type="submit"]').textContent = "Update Member";
 
 }
