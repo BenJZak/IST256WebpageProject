@@ -1,54 +1,51 @@
 html,
 body {
-    height: 100%;
-    margin: 0;
+height: 100%;
+margin: 0; /* just clearing the browser default spacing so layout doesn't start weird */
 }
 
 body {
-    background-color: #f5f5f5;
-}
-
-.page-wrapper {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+background: #f5f5f5;
+/* keeping this a light gray for now, plain white felt a little too empty */
 }
 
 .hero-section {
-    background: linear-gradient(135deg, #0d6efd, #0a58ca);
-    padding: 30px 0;
-}
-
-.content-section {
-    flex: 1;
-    padding-top: 30px;
-    padding-bottom: 30px;
+background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+padding-top: 35px;
+padding-bottom: 35px;
+/* could've left this as shorthand, but splitting it out feels easier to tweak later */
 }
 
 h1,
 h2,
 h3 {
-    font-weight: 600;
+font-weight: 600;
+/* not touching h4+ yet, might come back if the page ends up needing it */
 }
 
+.info-box,
+form {
+background-color: #fff;
+padding: 20px;
+border-radius: 8px;
+}
+
+/* slight duplication on purpose, pretty normal when styles grow bit by bit */
 .info-box {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
 }
 
 form {
-    background: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+/* left this a tiny bit stronger than the info box so the form stands out more */
 }
 
 table {
-    background: white;
+background-color: white;
+/* maybe add border-collapse later if table styling gets expanded */
 }
 
-footer {
-    margin-top: auto;
-}
+/* old idea, not using right now /
+/ .hero-section {
+min-height: 200px;
+} */
