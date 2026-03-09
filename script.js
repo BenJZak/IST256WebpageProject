@@ -20,6 +20,13 @@ memberFormEl.addEventListener("submit", function (evt) {
         alert("Please fill in all required fields");
         return;
     }
+    // simple email validation pattern, not perfect but should catch most mistakes
+    let emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+if (!emailPattern.test(memberEmail)) {
+    alert("Please enter a valid email address");
+    return;
+}
 
     let memberData = {
         name: memberName,
@@ -41,9 +48,11 @@ memberFormEl.addEventListener("submit", function (evt) {
     memberFormEl.reset();
     renderMembers();
 
-    // maybe later I could show a little success message here instead of doing nothing
-});
-
+    document.querySelector('button[type="submit"]').textContent = "Add Member";
+    
+    alert("Member successfully saved!");
+// added the success message
+    });
 function renderMembers() {
     memberTableBody.innerHTML = "";
 
@@ -105,6 +114,6 @@ function editMember(index) {
 
     currentEditRow = index;
 
-    // could also change the button text to "Update Member" later
+    document.querySelector('button[type="submit"]').textContent = "Update Member";    // changed it to update member
     // document.querySelector('button[type="submit"]').textContent = "Update Member";
 }
