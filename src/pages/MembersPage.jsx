@@ -1,9 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { defaultMembers } from '../data/defaultData';
 
 function getStoredMembers() {
   const savedMembers = localStorage.getItem('members');
-  return savedMembers ? JSON.parse(savedMembers) : defaultMembers;
+
+  if (savedMembers) {
+    return JSON.parse(savedMembers);
+  }
+
+  return defaultMembers;
 }
 
 export default function MembersPage() {
@@ -18,9 +23,15 @@ export default function MembersPage() {
   });
   const [message, setMessage] = useState({ text: '', type: '' });
 
-  const submitLabel = useMemo(() => {
-    return currentEditRow === -1 ? 'Add Member' : 'Update Member';
-  }, [currentEditRow]);
+  const submitLabel = getSubmitLabel();
+
+  function getSubmitLabel() {
+    if (currentEditRow === -1) {
+      return 'Add Member';
+    }
+
+    return 'Update Member';
+  }
 
   function saveMembers(nextMembers) {
     setMembersList(nextMembers);
@@ -49,7 +60,7 @@ export default function MembersPage() {
       return;
     }
 
-    const emailPattern = /[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*/;
+    const emailPattern = /[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*/;
 
     if (!emailPattern.test(formData.email.trim())) {
       setMessage({ text: 'Please enter a valid email address.', type: 'danger' });
@@ -79,7 +90,7 @@ export default function MembersPage() {
   }
 
   function handleDelete(index) {
-    const confirmDelete = window.confirm('Remove this member?');
+    const confirmDelete = window.confirm('Remove this member');
     if (!confirmDelete) {
       return;
     }
@@ -99,6 +110,34 @@ export default function MembersPage() {
     setCurrentEditRow(index);
     setMessage({ text: '', type: '' });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderMemberRows() {
+    if (membersList.length === 0) {
+      return (
+        <tr>
+          <td colSpan="6" className="text-center">No members added yet</td>
+        </tr>
+      );
+    }
+
+    return membersList.map((item, index) => (
+      <tr key={`${item.email}-${index}`}>
+        <td>{item.name}</td>
+        <td>{item.email}</td>
+        <td>{item.year}</td>
+        <td>{item.affiliation}</td>
+        <td>{item.phone || ''}</td>
+        <td>
+          <button className="btn btn-warning btn-sm me-2" type="button" onClick={() => handleEdit(index)}>
+            Edit
+          </button>
+          <button className="btn btn-danger btn-sm" type="button" onClick={() => handleDelete(index)}>
+            Delete
+          </button>
+        </td>
+      </tr>
+    ));
   }
 
   return (
@@ -158,33 +197,10 @@ export default function MembersPage() {
             </tr>
           </thead>
           <tbody>
-            {membersList.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="text-center">No members added yet</td>
-              </tr>
-            ) : (
-              membersList.map((item, index) => (
-                <tr key={`${item.email}-${index}`}>
-                  <td>{item.name}</td>
-                  <td>{item.email}</td>
-                  <td>{item.year}</td>
-                  <td>{item.affiliation}</td>
-                  <td>{item.phone || ''}</td>
-                  <td>
-                    <button className="btn btn-warning btn-sm me-2" type="button" onClick={() => handleEdit(index)}>
-                      Edit
-                    </button>
-                    <button className="btn btn-danger btn-sm" type="button" onClick={() => handleDelete(index)}>
-                      Delete
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            {renderMemberRows()}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
-

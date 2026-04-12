@@ -16,6 +16,14 @@ export default function HomePage() {
         <Link to="/finalization" className="btn btn-warning btn-lg">
           Finalization Page
         </Link>
+        <div className="mt-3">
+          <Link to="/orders" className="btn btn-primary btn-lg me-2">
+            Order History
+          </Link>
+          <Link to="/approval" className="btn btn-outline-light btn-lg">
+            Approval Page
+          </Link>
+        </div>
       </div>
     </header>
   );

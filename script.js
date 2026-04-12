@@ -20,7 +20,7 @@ memberFormEl.addEventListener("submit", function (evt) {
         return;
     }
 
-    let emailPattern = /[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*/;
+    let emailPattern = /[a-zA-Z0-9._-]+@[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*/;
 
     if (!emailPattern.test(memberEmail)) {
         alert("Please enter a valid email address");
@@ -82,7 +82,7 @@ function saveMembersToStorage() {
 }
 
 function deleteMember(index) {
-    let confirmDelete = confirm("Remove this member?");
+    let confirmDelete = confirm("Remove this member");
     if (!confirmDelete) {
         return;
     }
@@ -110,4 +110,3 @@ function editMember(index) {
     currentEditRow = index;
     document.querySelector('button[type="submit"]').textContent = "Update Member";
 }
-

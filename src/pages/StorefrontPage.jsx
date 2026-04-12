@@ -4,12 +4,22 @@ import { defaultProducts } from '../data/defaultData';
 
 function getStoredProducts() {
   const savedProducts = localStorage.getItem('products');
-  return savedProducts ? JSON.parse(savedProducts) : defaultProducts;
+
+  if (savedProducts) {
+    return JSON.parse(savedProducts);
+  }
+
+  return defaultProducts;
 }
 
 function getStoredCart() {
   const savedCart = localStorage.getItem('cart');
-  return savedCart ? JSON.parse(savedCart) : [];
+
+  if (savedCart) {
+    return JSON.parse(savedCart);
+  }
+
+  return [];
 }
 
 function generateProductID(products) {
@@ -130,13 +140,28 @@ export default function StorefrontPage() {
       return;
     }
 
+    const cartTotal = cart.reduce((total, item) => total + Number(item.price), 0);
+    const orderDocument = {
+      customer: {
+        fullName: 'Storefront Customer',
+        email: 'Not provided'
+      },
+      options: {
+        pickupMethod: 'Not selected',
+        paymentMethod: 'Not selected',
+        notes: 'Submitted from the storefront AJAX button.'
+      },
+      cart,
+      total: Number(cartTotal.toFixed(2))
+    };
+
     try {
-      const response = await fetch('https://jsonplaceholder.typicode.com/posts', {
+      const response = await fetch('/api/orders', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(cart)
+        body: JSON.stringify(orderDocument)
       });
 
       if (!response.ok) {
@@ -144,10 +169,50 @@ export default function StorefrontPage() {
       }
 
       await response.json();
-      setCheckoutMessage({ text: 'Cart sent successfully!', type: 'success' });
+      setCheckoutMessage({ text: 'Cart sent to the Node.js backend with pending status!', type: 'success' });
     } catch (error) {
       setCheckoutMessage({ text: 'Error sending cart. Please try again.', type: 'danger' });
     }
+  }
+
+  function renderFilteredProducts() {
+    if (filteredProducts.length === 0) {
+      return <div className="alert alert-warning">No matching products found.</div>;
+    }
+
+    return filteredProducts.map((product) => (
+      <div className="card mb-3 shadow-sm" key={product.productID}>
+        <div className="card-body">
+          <h5 className="card-title">{product.description}</h5>
+          <p><strong>ID:</strong> {product.productID}</p>
+          <p><strong>Category:</strong> {product.category}</p>
+          <p><strong>Unit:</strong> {product.unit}</p>
+          <p><strong>Price:</strong> ${product.price.toFixed(2)}</p>
+          <p><strong>Weight:</strong> {product.weight || 'N/A'}</p>
+          <p><strong>Color:</strong> {product.color || 'N/A'}</p>
+          <button className="btn btn-sm btn-primary" type="button" onClick={() => handleAddToCart(product.productID)}>
+            Add to Cart
+          </button>
+        </div>
+      </div>
+    ));
+  }
+
+  function renderCartItems() {
+    if (cart.length === 0) {
+      return <div className="alert alert-secondary">Cart is empty</div>;
+    }
+
+    return cart.map((item, index) => (
+      <div className="card mb-2 shadow-sm" key={`${item.productID}-${index}`}>
+        <div className="card-body">
+          {item.description} - ${item.price.toFixed(2)}
+          <button className="btn btn-sm btn-danger float-end" type="button" onClick={() => handleRemoveFromCart(index)}>
+            Remove
+          </button>
+        </div>
+      </div>
+    ));
   }
 
   return (
@@ -224,44 +289,12 @@ export default function StorefrontPage() {
       <div className="row">
         <div className="col-lg-7 mb-4">
           <h4>Available Products</h4>
-          {filteredProducts.length === 0 ? (
-            <div className="alert alert-warning">No matching products found.</div>
-          ) : (
-            filteredProducts.map((product) => (
-              <div className="card mb-3 shadow-sm" key={product.productID}>
-                <div className="card-body">
-                  <h5 className="card-title">{product.description}</h5>
-                  <p><strong>ID:</strong> {product.productID}</p>
-                  <p><strong>Category:</strong> {product.category}</p>
-                  <p><strong>Unit:</strong> {product.unit}</p>
-                  <p><strong>Price:</strong> ${product.price.toFixed(2)}</p>
-                  <p><strong>Weight:</strong> {product.weight || 'N/A'}</p>
-                  <p><strong>Color:</strong> {product.color || 'N/A'}</p>
-                  <button className="btn btn-sm btn-primary" type="button" onClick={() => handleAddToCart(product.productID)}>
-                    Add to Cart
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+          {renderFilteredProducts()}
         </div>
 
         <div className="col-lg-5 mb-4">
           <h4>Shopping Cart</h4>
-          {cart.length === 0 ? (
-            <div className="alert alert-secondary">Cart is empty</div>
-          ) : (
-            cart.map((item, index) => (
-              <div className="card mb-2 shadow-sm" key={`${item.productID}-${index}`}>
-                <div className="card-body">
-                  {item.description} - ${item.price.toFixed(2)}
-                  <button className="btn btn-sm btn-danger float-end" type="button" onClick={() => handleRemoveFromCart(index)}>
-                    Remove
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+          {renderCartItems()}
 
           {checkoutMessage.text && (
             <div className={`alert alert-${checkoutMessage.type} mt-3`} role="alert">
@@ -288,4 +321,3 @@ export default function StorefrontPage() {
     </div>
   );
 }
-

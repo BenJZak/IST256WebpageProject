@@ -1,10 +1,15 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { defaultFinalization } from '../data/defaultData';
 import { sendFinalizationData } from '../api/finalizationApi';
 
 function getStoredCart() {
   const savedCart = localStorage.getItem('cart');
-  return savedCart ? JSON.parse(savedCart) : [];
+
+  if (savedCart) {
+    return JSON.parse(savedCart);
+  }
+
+  return [];
 }
 
 export default function FinalizationPage() {
@@ -14,15 +19,22 @@ export default function FinalizationPage() {
   const [jsonPreview, setJsonPreview] = useState('');
   const [isSending, setIsSending] = useState(false);
 
-  const cartTotal = useMemo(() => {
-    return cart.reduce((total, item) => total + Number(item.price), 0);
-  }, [cart]);
+  let cartTotal = 0;
+  cart.forEach(function(item) {
+    cartTotal = cartTotal + Number(item.price);
+  });
 
   function handleChange(event) {
     const { name, value, type, checked } = event.target;
+    let fieldValue = value;
+
+    if (type === 'checkbox') {
+      fieldValue = checked;
+    }
+
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: fieldValue
     });
 
     if (statusMessage.text) {
@@ -30,7 +42,7 @@ export default function FinalizationPage() {
     }
   }
 
-  async function handleSubmit(event) {
+  function handleSubmit(event) {
     event.preventDefault();
 
     if (
@@ -49,6 +61,7 @@ export default function FinalizationPage() {
     }
 
     const jsonDocument = {
+      status: 'pending',
       customer: {
         fullName: formData.fullName.trim(),
         email: formData.email.trim()
@@ -65,14 +78,43 @@ export default function FinalizationPage() {
     setJsonPreview(JSON.stringify(jsonDocument, null, 2));
     setIsSending(true);
 
-    try {
-      await sendFinalizationData(jsonDocument);
-      setStatusMessage({ text: 'Finalization data sent successfully.', type: 'success' });
-    } catch (error) {
-      setStatusMessage({ text: 'Error sending finalization data.', type: 'danger' });
-    } finally {
+    sendFinalizationData(jsonDocument)
+    .then(function() {
+      setStatusMessage({ text: 'Finalization data saved to the Node.js backend with pending approval.', type: 'success' });
       setIsSending(false);
+    })
+    .catch(function() {
+      setStatusMessage({ text: 'Error sending finalization data.', type: 'danger' });
+      setIsSending(false);
+    });
+  }
+
+  function getButtonText() {
+    if (isSending) {
+      return 'Sending...';
     }
+
+    return 'Submit Finalization';
+  }
+
+  function renderCartSummary() {
+    if (cart.length === 0) {
+      return <p className="mb-0">No cart items were found. Add items from the storefront page first.</p>;
+    }
+
+    return (
+      <>
+        {cart.map(function(item, index) {
+          return (
+            <div className="border-bottom py-2" key={item.productID + '-' + index}>
+              <div className="fw-semibold">{item.description}</div>
+              <div>{item.productID} | {item.category} | ${Number(item.price).toFixed(2)}</div>
+            </div>
+          );
+        })}
+        <div className="mt-3 fw-bold">Total: ${cartTotal.toFixed(2)}</div>
+      </>
+    );
   }
 
   return (
@@ -139,7 +181,7 @@ export default function FinalizationPage() {
 
             <div className="mt-4 d-flex gap-2 flex-wrap">
               <button className="btn btn-success" type="submit" disabled={isSending}>
-                {isSending ? 'Sending...' : 'Submit Finalization'}
+                {getButtonText()}
               </button>
             </div>
           </form>
@@ -149,19 +191,7 @@ export default function FinalizationPage() {
           <div className="card shadow-sm border-0 mb-4">
             <div className="card-body">
               <h4 className="h5">Cart Summary</h4>
-              {cart.length === 0 ? (
-                <p className="mb-0">No cart items were found. Add items from the storefront page first.</p>
-              ) : (
-                <>
-                  {cart.map((item, index) => (
-                    <div className="border-bottom py-2" key={`${item.productID}-${index}`}>
-                      <div className="fw-semibold">{item.description}</div>
-                      <div>{item.productID} | {item.category} | ${Number(item.price).toFixed(2)}</div>
-                    </div>
-                  ))}
-                  <div className="mt-3 fw-bold">Total: ${cartTotal.toFixed(2)}</div>
-                </>
-              )}
+              {renderCartSummary()}
             </div>
           </div>
 
@@ -176,4 +206,3 @@ export default function FinalizationPage() {
     </div>
   );
 }
-

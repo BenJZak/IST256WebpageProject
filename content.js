@@ -179,14 +179,33 @@ $(document).ready(function () {
             return;
         }
 
+        var cartTotal = 0;
+        cart.forEach(function (item) {
+            cartTotal += Number(item.price);
+        });
+
+        var orderDocument = {
+            customer: {
+                fullName: "Storefront Customer",
+                email: "Not provided"
+            },
+            options: {
+                pickupMethod: "Not selected",
+                paymentMethod: "Not selected",
+                notes: "Submitted from the storefront AJAX button."
+            },
+            cart: cart,
+            total: Number(cartTotal.toFixed(2))
+        };
+
         $.ajax({
-            url: "https://jsonplaceholder.typicode.com/posts",
+            url: "http://localhost:3001/api/orders",
             method: "POST",
-            data: JSON.stringify(cart),
+            data: JSON.stringify(orderDocument),
             contentType: "application/json",
             success: function (response) {
                 console.log("Success:", response);
-                showCheckoutMessage("Cart sent successfully!", "alert-success");
+                showCheckoutMessage("Cart sent to the Node.js backend with pending status!", "alert-success");
             },
             error: function (xhr, status, error) {
                 console.error("AJAX Error:", status, error);
@@ -200,4 +219,3 @@ $(document).ready(function () {
     displayCart();
     displayJSON();
 });
-

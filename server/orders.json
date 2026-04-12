@@ -1,1 +1,141 @@
-[]
+[
+  {
+    "customer": {
+      "fullName": "Jordan Lee",
+      "email": "jordan@example.com"
+    },
+    "options": {
+      "pickupMethod": "Club Pickup",
+      "paymentMethod": "Cash",
+      "notes": "Will pick up after the club meeting."
+    },
+    "cart": [
+      {
+        "productID": "P1",
+        "description": "IST 256 Hoodie",
+        "category": "Apparel",
+        "unit": "Each",
+        "price": 35,
+        "weight": "1 lb",
+        "color": "Navy"
+      }
+    ],
+    "total": 35,
+    "id": 1001,
+    "date": "2026-04-10T14:15:00.000Z",
+    "status": "pending"
+  },
+  {
+    "customer": {
+      "fullName": "Taylor Kim",
+      "email": "taylor@example.com"
+    },
+    "options": {
+      "pickupMethod": "Event Booth Pickup",
+      "paymentMethod": "Campus Transfer",
+      "notes": "Needs the ticket before the workshop starts."
+    },
+    "cart": [
+      {
+        "productID": "P2",
+        "description": "Blue Team Workshop CTF Ticket",
+        "category": "Event",
+        "unit": "Ticket",
+        "price": 15,
+        "weight": "",
+        "color": ""
+      }
+    ],
+    "total": 15,
+    "id": 1002,
+    "date": "2026-04-11T17:30:00.000Z",
+    "status": "approved"
+  },
+  {
+    "customer": {
+      "fullName": "Morgan Patel",
+      "email": "morgan@example.com"
+    },
+    "options": {
+      "pickupMethod": "Digital Ticket Email",
+      "paymentMethod": "Cash",
+      "notes": "Duplicate ticket request for the same event."
+    },
+    "cart": [
+      {
+        "productID": "P2",
+        "description": "Blue Team Workshop CTF Ticket",
+        "category": "Event",
+        "unit": "Ticket",
+        "price": 15,
+        "weight": "",
+        "color": ""
+      }
+    ],
+    "total": 15,
+    "id": 1003,
+    "date": "2026-04-12T12:00:00.000Z",
+    "status": "declined"
+  },
+  {
+    "status": "pending",
+    "customer": {
+      "fullName": "Test",
+      "email": "test@gmail.com"
+    },
+    "options": {
+      "pickupMethod": "Club Pickup",
+      "paymentMethod": "Card",
+      "notes": ""
+    },
+    "cart": [
+      {
+        "productID": "P1",
+        "description": "IST 256 Hoodie",
+        "category": "Apparel",
+        "unit": "Each",
+        "price": 35,
+        "weight": "1 lb",
+        "color": "Navy"
+      },
+      {
+        "productID": "P2",
+        "description": "Blue Team Workshop CTF Ticket",
+        "category": "Event",
+        "unit": "Ticket",
+        "price": 15,
+        "weight": "",
+        "color": ""
+      }
+    ],
+    "total": 50,
+    "id": 1776022168865,
+    "date": "4/12/2026, 3:29:28 PM"
+  },
+  {
+    "customer": {
+      "fullName": "Storefront Customer",
+      "email": "Not provided"
+    },
+    "options": {
+      "pickupMethod": "Not selected",
+      "paymentMethod": "Not selected",
+      "notes": "Submitted from the storefront AJAX button."
+    },
+    "cart": [
+      {
+        "productID": "P1",
+        "description": "IST 256 Hoodie",
+        "category": "Apparel",
+        "unit": "Each",
+        "price": 35,
+        "weight": "1 lb",
+        "color": "Navy"
+      }
+    ],
+    "total": 35,
+    "id": 1776022489266,
+    "date": "4/12/2026, 3:34:49 PM",
+    "status": "pending"
+  }
+]

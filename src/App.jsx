@@ -5,6 +5,8 @@ import HomePage from './pages/HomePage';
 import MembersPage from './pages/MembersPage';
 import StorefrontPage from './pages/StorefrontPage';
 import FinalizationPage from './pages/FinalizationPage';
+import OrderHistoryPage from './pages/OrderHistoryPage';
+import ApprovalPage from './pages/ApprovalPage';
 
 export default function App() {
   return (
@@ -16,10 +18,11 @@ export default function App() {
           <Route path="/members" element={<MembersPage />} />
           <Route path="/storefront" element={<StorefrontPage />} />
           <Route path="/finalization" element={<FinalizationPage />} />
+          <Route path="/orders" element={<OrderHistoryPage />} />
+          <Route path="/approval" element={<ApprovalPage />} />
         </Routes>
       </main>
       <Footer />
     </div>
   );
 }
-

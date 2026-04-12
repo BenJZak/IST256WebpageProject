@@ -40,10 +40,15 @@ export default function Header() {
             <li className="nav-item">
               <NavLink className="nav-link" to="/finalization">Finalization</NavLink>
             </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/orders">Order History</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/approval">Approval</NavLink>
+            </li>
           </ul>
         </div>
       </div>
     </nav>
   );
 }
-
