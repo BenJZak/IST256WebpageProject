@@ -1,0 +1,94 @@
+body {
+  background-color: #f8f9fa;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  margin: 0;
+  padding: 0;
+}
+
+/* Navbar spacing fix */
+.navbar {
+  margin-bottom: 0;
+}
+
+/* Hero banner */
+.hero-section {
+  background: linear-gradient(rgba(13, 27, 42, 0.78), rgba(13, 27, 42, 0.68)),
+    url("/images/ist-banner.jpg") center/cover no-repeat;
+  min-height: 320px;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.hero-section .container {
+  margin: 0 auto;
+  padding: 0;
+}
+
+/* remove spacing under hero */
+.hero-section + .container,
+.hero-section + .container-fluid {
+  margin-top: 0;
+  padding-top: 0;
+}
+
+main {
+  margin: 0;
+  padding: 0;
+}
+
+h2,
+h4 {
+  color: #0d1b2a;
+  font-weight: 600;
+}
+
+/* Cards */
+.product-form {
+  background-color: #ffffff;
+  padding: 25px;
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.card-title {
+  margin-bottom: 15px;
+  color: #0d1b2a;
+  font-weight: 600;
+}
+
+/* JSON preview */
+.json-preview,
+#jsonOutput {
+  max-height: 320px;
+  overflow-y: auto;
+  font-size: 14px;
+  white-space: pre-wrap;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+/* Footer */
+footer {
+  font-size: 14px;
+  margin-top: 0;
+  padding-top: 10px;
+}
+
+/* readonly inputs */
+.form-control[readonly] {
+  background-color: #e9ecef;
+  cursor: not-allowed;
+}
+
+.nav-link.active {
+  font-weight: 700;
+}

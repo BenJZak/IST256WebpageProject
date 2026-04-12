@@ -1,0 +1,56 @@
+body {
+    background-color: #f8f9fa;
+    font-family: Arial, sans-serif;
+}
+
+h2,
+h4 {
+    color: #0d1b2a;
+    font-weight: 600;
+}
+
+.navbar-brand img {
+    border-radius: 4px;
+}
+
+#productForm {
+    background-color: #ffffff;
+    padding: 25px;
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+#productList .card,
+#cartList .card {
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    border: 1px solid #dee2e6;
+}
+
+#productList .card-title {
+    margin-bottom: 15px;
+    color: #0d1b2a;
+    font-weight: 600;
+}
+
+#jsonOutput {
+    max-height: 300px;
+    overflow-y: auto;
+    font-size: 14px;
+    white-space: pre-wrap;
+}
+
+footer {
+    font-size: 14px;
+}
+
+#checkoutMessage {
+    font-weight: 500;
+}
+
+.form-control[readonly] {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+
