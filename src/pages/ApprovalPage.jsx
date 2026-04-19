@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../api/apiConfig";
 
 function formatDate(dateValue) {
   if (!dateValue) {
@@ -34,6 +35,14 @@ function getCustomerEmail(order) {
   return "No email saved";
 }
 
+function getCustomerPhone(order) {
+  if (order.customer && order.customer.phone) {
+    return order.customer.phone;
+  }
+
+  return "";
+}
+
 function getPickupMethod(order) {
   if (order.options && order.options.pickupMethod) {
     return order.options.pickupMethod;
@@ -60,7 +69,7 @@ export default function ApprovalPage() {
   const [message, setMessage] = useState("");
 
   function load() {
-    fetch("/api/orders/pending")
+    fetch(API_BASE_URL + "/orders/pending")
       .then(function(res) {
         if (!res.ok) {
           throw new Error("Request failed");
@@ -78,7 +87,7 @@ export default function ApprovalPage() {
   }
 
   function update(id, status) {
-    fetch("/api/orders/" + id, {
+    fetch(API_BASE_URL + "/orders/" + id, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status: status })
@@ -157,6 +166,7 @@ export default function ApprovalPage() {
                       <div className="order-label">Customer</div>
                       <div>{getCustomerName(order)}</div>
                       <div className="text-muted">{getCustomerEmail(order)}</div>
+                      {getCustomerPhone(order) && <div className="text-muted">{getCustomerPhone(order)}</div>}
                     </div>
 
                     <div className="col-md-4">
@@ -208,12 +218,12 @@ export default function ApprovalPage() {
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="mb-1">Approval Dashboard</h2>
+          <h2 className="mb-1">Admin Review</h2>
           <p className="text-muted mb-0">Review pending orders and approve or decline each one.</p>
         </div>
 
         <button className="btn btn-outline-primary" type="button" onClick={load}>
-          Reload Pending
+          Reload Orders
         </button>
       </div>
 

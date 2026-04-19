@@ -27,10 +27,10 @@
                         <a href="index.html" class="nav-link">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a href="members.html" class="nav-link">Members</a>
+                        <a href="content.html" class="nav-link active">Store</a>
                     </li>
                     <li class="nav-item">
-                        <a href="content.html" class="nav-link active">Storefront</a>
+                        <a href="/#admin-members" class="nav-link">Admin</a>
                     </li>
                 </ul>
             </div>
@@ -38,64 +38,19 @@
     </nav>
 
     <main class="container mt-5 flex-grow-1">
-        <h2 class="mb-4">Shopping Cart Web Page</h2>
-
-        <form id="productForm">
-            <div class="row g-3">
-
-                <div class="col-md-4">
-                    <label for="productID" class="form-label">Product ID *</label>
-                    <input type="text" class="form-control" id="productID" readonly>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="description" class="form-label">Description *</label>
-                    <input type="text" class="form-control" id="description" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="price" class="form-label">Price *</label>
-                    <input type="number" step="0.01" min="0.01" class="form-control" id="price" required>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="category" class="form-label">Category *</label>
-                    <select class="form-select" id="category" required>
-                        <option value="">Select Category</option>
-                        <option>Apparel</option>
-                        <option>Event</option>
-                        <option>Accessories</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="unit" class="form-label">Unit *</label>
-                    <select class="form-select" id="unit" required>
-                        <option value="">Select Unit</option>
-                        <option>Each</option>
-                        <option>Ticket</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="weight" class="form-label">Weight</label>
-                    <input type="text" class="form-control" id="weight" placeholder="e.g. 1 lb">
-                </div>
-
-                <div class="col-md-4">
-                    <label for="color" class="form-label">Color</label>
-                    <input type="text" class="form-control" id="color" placeholder="e.g. Navy">
-                </div>
-
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+            <div>
+                <h2 class="mb-1">Store</h2>
+                <p class="text-muted mb-0">Browse available products and send items to your cart.</p>
             </div>
 
-            <div class="mt-4">
-                <button type="submit" class="btn btn-success" id="addBtn">Add Product</button>
-                <button type="reset" class="btn btn-secondary ms-2" id="clearBtn">Clear</button>
-            </div>
-        </form>
+            <button class="btn btn-outline-primary" type="button" id="reloadProducts">
+                Reload Products
+            </button>
+        </div>
 
-        <hr class="my-5">
+        <div id="productMessage" class="alert d-none" role="alert"></div>
+        <div id="checkoutMessage" class="alert d-none" role="alert"></div>
 
         <div class="row mb-4">
             <div class="col-md-6">
@@ -114,23 +69,17 @@
                 <h4>Shopping Cart</h4>
                 <div id="cartList"></div>
 
-                <div id="checkoutMessage" class="alert d-none mt-3" role="alert"></div>
-
                 <button id="checkout" class="btn btn-primary mt-3" type="button">
-                    Send Cart with AJAX
+                    Go to Checkout
                 </button>
             </div>
 
         </div>
 
-        <hr class="my-5">
-
-        <h4>JSON Product Data</h4>
-        <pre id="jsonOutput" class="bg-light p-3 border rounded"></pre>
     </main>
 
-    <footer class="text-center p-3 bg-light border-top mt-4">
-        <p class="mb-0">Student Club Portal © 2026</p>
+    <footer class="text-center p-3 bg-light border-top">
+        <p class="mb-0">Student Club Portal &copy; 2026</p>
     </footer>
 
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

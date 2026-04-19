@@ -17,13 +17,13 @@ h4 {
     background-color: #ffffff;
     padding: 25px;
     border: 1px solid #dee2e6;
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 #productList .card,
 #cartList .card {
-    border-radius: 10px;
+    border-radius: 8px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
     border: 1px solid #dee2e6;
 }
@@ -32,13 +32,6 @@ h4 {
     margin-bottom: 15px;
     color: #0d1b2a;
     font-weight: 600;
-}
-
-#jsonOutput {
-    max-height: 300px;
-    overflow-y: auto;
-    font-size: 14px;
-    white-space: pre-wrap;
 }
 
 footer {
@@ -54,3 +47,19 @@ footer {
     cursor: not-allowed;
 }
 
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #c62828;
+    box-shadow: 0 0 0 0.18rem rgba(198, 40, 40, 0.12);
+}
+
+.invalid-feedback {
+    color: #b42318;
+    font-weight: 700;
+}
+
+.btn,
+.form-control,
+.form-select {
+    border-radius: 8px;
+}

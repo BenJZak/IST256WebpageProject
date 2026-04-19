@@ -1,18 +1,24 @@
-import { NavLink } from 'react-router-dom';
+function getNavClass(currentPage, pageName) {
+  if (currentPage === pageName) {
+    return 'nav-link active';
+  }
 
-export default function Header() {
+  return 'nav-link';
+}
+
+export default function Header(props) {
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+    <nav className="navbar navbar-expand-lg navbar-light site-navbar sticky-top">
       <div className="container">
-        <NavLink className="navbar-brand d-flex align-items-center" to="/">
+        <a className="navbar-brand d-flex align-items-center gap-2" href="#home">
           <img
             src="https://brand.psu.edu/images/shared-images/PSU-mark-navy.jpg"
             alt="Penn State Logo"
             height="40"
-            className="me-2 rounded"
+            className="brand-mark"
           />
-          Club Portal
-        </NavLink>
+          <span className="brand-text">Club Portal</span>
+        </a>
 
         <button
           className="navbar-toggler"
@@ -27,24 +33,18 @@ export default function Header() {
         </button>
 
         <div className="collapse navbar-collapse" id="mainNav">
-          <ul className="navbar-nav ms-auto">
+          <ul className="navbar-nav ms-auto align-items-lg-center">
             <li className="nav-item">
-              <NavLink className="nav-link" to="/">Home</NavLink>
+              <a className={getNavClass(props.currentPage, 'home')} href="#home">Home</a>
             </li>
             <li className="nav-item">
-              <NavLink className="nav-link" to="/members">Members</NavLink>
+              <a className={getNavClass(props.currentPage, 'store')} href="#store">Store</a>
             </li>
             <li className="nav-item">
-              <NavLink className="nav-link" to="/storefront">Storefront</NavLink>
+              <a className={getNavClass(props.currentPage, 'orders')} href="#orders">My Orders</a>
             </li>
             <li className="nav-item">
-              <NavLink className="nav-link" to="/finalization">Finalization</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/orders">Order History</NavLink>
-            </li>
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/approval">Approval</NavLink>
+              <a className={getNavClass(props.currentPage, 'admin')} href="#admin">Admin</a>
             </li>
           </ul>
         </div>

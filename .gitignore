@@ -1,6 +1,6 @@
 node_modules/
 dist/
 build/
-.vite/
+.parcel-cache/
 .vscode/
 server/node_modules/

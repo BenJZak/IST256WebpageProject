@@ -1,5 +1,7 @@
+import { API_BASE_URL } from './apiConfig';
+
 export function sendFinalizationData(dataObject) {
-  return fetch('/api/orders', {
+  return fetch(API_BASE_URL + '/orders', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'

@@ -1,4 +1,23 @@
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "../api/apiConfig";
+
+function getStoredCustomerEmail() {
+  const savedEmail = localStorage.getItem("customerEmail");
+
+  if (savedEmail) {
+    return savedEmail;
+  }
+
+  return "";
+}
+
+function normalizeEmail(email) {
+  return email.trim().toLowerCase();
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
 
 function getStatusClass(status) {
   if (status === "approved") {
@@ -34,26 +53,6 @@ function formatDate(dateValue) {
   return date.toLocaleString();
 }
 
-function getCustomerName(order) {
-  if (order.customer && order.customer.fullName) {
-    return order.customer.fullName;
-  }
-
-  if (order.name) {
-    return order.name;
-  }
-
-  return "Unknown Customer";
-}
-
-function getCustomerEmail(order) {
-  if (order.customer && order.customer.email) {
-    return order.customer.email;
-  }
-
-  return "No email saved";
-}
-
 function getPickupMethod(order) {
   if (order.options && order.options.pickupMethod) {
     return order.options.pickupMethod;
@@ -76,11 +75,44 @@ function getTotal(order) {
 }
 
 export default function OrderHistoryPage() {
+  const [customerEmail, setCustomerEmail] = useState(getStoredCustomerEmail);
+  const [lookupEmail, setLookupEmail] = useState(getStoredCustomerEmail);
+  const [lookupError, setLookupError] = useState("");
   const [orders, setOrders] = useState([]);
   const [message, setMessage] = useState("");
 
-  function loadOrders() {
-    fetch("/api/orders")
+  function loadOrders(emailValue) {
+    const normalizedEmail = normalizeEmail(emailValue);
+
+    if (!isValidEmail(normalizedEmail)) {
+      setLookupError("Enter the email address used at checkout.");
+      setMessage("");
+      setOrders([]);
+      return;
+    }
+
+    setMessage("");
+
+    fetch(API_BASE_URL + "/members?email=" + encodeURIComponent(normalizedEmail))
+      .then(function(res) {
+        if (!res.ok) {
+          throw new Error("Request failed");
+        }
+
+        return res.json();
+      })
+      .then(function(memberData) {
+        if (!Array.isArray(memberData) || memberData.length === 0) {
+          localStorage.removeItem("customerEmail");
+          setCustomerEmail("");
+          setLookupEmail(normalizedEmail);
+          setOrders([]);
+          setLookupError("That email is not registered as a member yet. Register first, then check orders.");
+          throw new Error("MEMBER_NOT_FOUND");
+        }
+
+        return fetch(API_BASE_URL + "/orders?customerEmail=" + encodeURIComponent(normalizedEmail));
+      })
       .then(function(res) {
         if (!res.ok) {
           throw new Error("Request failed");
@@ -89,12 +121,34 @@ export default function OrderHistoryPage() {
         return res.json();
       })
       .then(function(data) {
+        localStorage.setItem("customerEmail", normalizedEmail);
+        setCustomerEmail(normalizedEmail);
+        setLookupEmail(normalizedEmail);
         setOrders(data);
+        setLookupError("");
         setMessage("");
       })
-      .catch(function() {
-        setMessage("Order history could not be loaded. Make sure the Node.js server is running.");
+      .catch(function(error) {
+        if (error.message === "MEMBER_NOT_FOUND") {
+          return;
+        }
+
+        setMessage("Your orders could not be loaded. Make sure the Node.js server is running.");
       });
+  }
+
+  function handleLookupSubmit(event) {
+    event.preventDefault();
+    loadOrders(lookupEmail);
+  }
+
+  function handleUseDifferentEmail() {
+    localStorage.removeItem("customerEmail");
+    setCustomerEmail("");
+    setLookupEmail(customerEmail);
+    setLookupError("");
+    setMessage("");
+    setOrders([]);
   }
 
   function renderOrderItems(order) {
@@ -123,9 +177,40 @@ export default function OrderHistoryPage() {
     return null;
   }
 
+  function renderLookupForm() {
+    return (
+      <form onSubmit={handleLookupSubmit} className="card shadow-sm border-0 p-4 my-orders-lookup" noValidate>
+        <div className="row g-3 align-items-end">
+          <div className="col-md-8">
+            <label htmlFor="orderEmail" className="form-label">Checkout Email</label>
+            <input
+              type="email"
+              className={lookupError ? "form-control is-invalid" : "form-control"}
+              id="orderEmail"
+              value={lookupEmail}
+              onChange={function(event) {
+                setLookupEmail(event.target.value);
+                setLookupError("");
+              }}
+              placeholder="you@example.com"
+              required
+            />
+            {lookupError && <div className="invalid-feedback">{lookupError}</div>}
+          </div>
+
+          <div className="col-md-4">
+            <button className="btn btn-primary w-100" type="submit">
+              Find My Orders
+            </button>
+          </div>
+        </div>
+      </form>
+    );
+  }
+
   function renderOrders() {
     if (orders.length === 0) {
-      return <div className="alert alert-info">No orders have been submitted yet.</div>;
+      return <div className="alert alert-info">No orders were found for {customerEmail}.</div>;
     }
 
     return (
@@ -134,7 +219,6 @@ export default function OrderHistoryPage() {
           <thead>
             <tr>
               <th>ID</th>
-              <th>Customer</th>
               <th>Status</th>
               <th>Date</th>
               <th>Details</th>
@@ -147,10 +231,6 @@ export default function OrderHistoryPage() {
               return (
                 <tr key={order.id || index}>
                   <td>{order.id || "No ID"}</td>
-                  <td>
-                    <div>{getCustomerName(order)}</div>
-                    <div className="text-muted">{getCustomerEmail(order)}</div>
-                  </td>
                   <td>
                     <span className={"badge status-badge " + getStatusClass(order.status)}>
                       {formatStatus(order.status)}
@@ -173,23 +253,46 @@ export default function OrderHistoryPage() {
     );
   }
 
-  useEffect(loadOrders, []);
+  useEffect(function() {
+    if (customerEmail) {
+      loadOrders(customerEmail);
+    }
+  }, []);
 
   return (
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="mb-1">Order History</h2>
-          <p className="text-muted mb-0">All submitted orders and their current approval status.</p>
+          <h2 className="mb-1">My Orders</h2>
+          <p className="text-muted mb-0">Look up orders using the email address from checkout.</p>
         </div>
 
-        <button className="btn btn-outline-primary" type="button" onClick={loadOrders}>
-          Reload Orders
-        </button>
+        {customerEmail && (
+          <button className="btn btn-outline-primary" type="button" onClick={function() { loadOrders(customerEmail); }}>
+            Reload My Orders
+          </button>
+        )}
       </div>
 
+      {!customerEmail && renderLookupForm()}
+
       {message && <div className="alert alert-danger">{message}</div>}
-      {renderOrders()}
+
+      {customerEmail && (
+        <>
+          <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <p className="mb-0">
+              Showing orders for <strong>{customerEmail}</strong>
+            </p>
+
+            <button className="btn btn-outline-dark" type="button" onClick={handleUseDifferentEmail}>
+              Use a Different Email
+            </button>
+          </div>
+
+          {renderOrders()}
+        </>
+      )}
     </div>
   );
 }

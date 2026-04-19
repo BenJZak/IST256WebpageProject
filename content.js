@@ -1,56 +1,54 @@
 $(document).ready(function () {
+    var productApiUrl = "http://localhost:3001/api/products";
+    var products = [];
+    var cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-    var products = JSON.parse(localStorage.getItem("products")) || [
-        {
-            productID: "P1",
-            description: "IST 256 Hoodie",
-            category: "Apparel",
-            unit: "Each",
-            price: 35.00,
-            weight: "1 lb",
-            color: "Navy"
-        },
-        {
-            productID: "P2",
-            description: "Blue Team Workshop CTF Ticket",
-            category: "Event",
-            unit: "Ticket",
-            price: 15.00,
-            weight: "",
-            color: ""
-        }
-    ];
-
-    var cart = [];
-
-    function saveProducts() {
-        localStorage.setItem("products", JSON.stringify(products));
+    function saveCart() {
+        localStorage.setItem("cart", JSON.stringify(cart));
     }
 
-    function generateProductID() {
-        if (products.length === 0) {
-            return "P1";
-        }
+    function showMessage(selector, message, type) {
+        var box = $(selector);
+        box.text(message);
+        box.removeClass("d-none alert-success alert-danger alert-info alert-warning");
+        box.addClass("alert " + type);
+    }
 
-        var highestNum = 0;
+    function hideMessage(selector) {
+        $(selector).addClass("d-none");
+    }
 
-        products.forEach(function (product) {
-            var currentNum = parseInt(product.productID.replace("P", ""));
-
-            if (currentNum > highestNum) {
-                highestNum = currentNum;
+    function loadProducts() {
+        $.ajax({
+            url: productApiUrl,
+            method: "GET",
+            success: function (data) {
+                products = data;
+                cart = cart.filter(function (item) {
+                    return products.some(function (product) {
+                        return product.productID === item.productID;
+                    });
+                });
+                saveCart();
+                hideMessage("#productMessage");
+                displayProducts(products);
+                displayCart();
+            },
+            error: function () {
+                products = [];
+                displayProducts(products);
+                showMessage("#productMessage", "Products could not be loaded. Make sure the Node.js server is running.", "alert-danger");
             }
         });
-
-        return "P" + (highestNum + 1);
-    }
-
-    function setNextProductID() {
-        $("#productID").val(generateProductID());
     }
 
     function displayProducts(list) {
         $("#productList").empty();
+
+        if (products.length === 0) {
+            $("#productList").html("<div class='alert alert-info'>No products are available right now.</div>");
+            return;
+        }
 
         if (list.length === 0) {
             $("#productList").html("<div class='alert alert-warning'>No matching products found.</div>");
@@ -60,14 +58,14 @@ $(document).ready(function () {
         list.forEach(function (product) {
             var card = "<div class='card mb-3'>" +
                 "<div class='card-body'>" +
-                "<h5 class='card-title'>" + product.description + "</h5>" +
-                "<p><strong>ID:</strong> " + product.productID + "</p>" +
-                "<p><strong>Category:</strong> " + product.category + "</p>" +
-                "<p><strong>Unit:</strong> " + product.unit + "</p>" +
-                "<p><strong>Price:</strong> $" + product.price.toFixed(2) + "</p>" +
+                "<h5 class='card-title'>" + (product.description || "Untitled Product") + "</h5>" +
+                "<p><strong>ID:</strong> " + (product.productID || "No ID") + "</p>" +
+                "<p><strong>Category:</strong> " + (product.category || "") + "</p>" +
+                "<p><strong>Unit:</strong> " + (product.unit || "") + "</p>" +
+                "<p><strong>Price:</strong> $" + Number(product.price || 0).toFixed(2) + "</p>" +
                 "<p><strong>Weight:</strong> " + (product.weight || "N/A") + "</p>" +
                 "<p><strong>Color:</strong> " + (product.color || "N/A") + "</p>" +
-                "<button class='btn btn-sm btn-primary addToCart' data-id='" + product.productID + "'>Add to Cart</button>" +
+                "<button class='btn btn-sm btn-primary addToCart' data-id='" + product.productID + "'>Send to Cart</button>" +
                 "</div>" +
                 "</div>";
 
@@ -86,7 +84,7 @@ $(document).ready(function () {
         cart.forEach(function (item, index) {
             var row = "<div class='card mb-2'>" +
                 "<div class='card-body'>" +
-                item.description + " - $" + item.price.toFixed(2) +
+                (item.description || "Untitled Product") + " - $" + Number(item.price || 0).toFixed(2) +
                 "<button class='btn btn-sm btn-danger float-end removeFromCart' data-index='" + index + "'>Remove</button>" +
                 "</div>" +
                 "</div>";
@@ -95,60 +93,20 @@ $(document).ready(function () {
         });
     }
 
-    function displayJSON() {
-        $("#jsonOutput").text(JSON.stringify(products, null, 2));
-    }
-
-    function showCheckoutMessage(message, type) {
-        var box = $("#checkoutMessage");
-        box.text(message);
-        box.removeClass("d-none alert-success alert-danger");
-        box.addClass("alert " + type);
-    }
-
-    $("#productForm").on("submit", function (evt) {
-        evt.preventDefault();
-
-        if (!this.checkValidity()) {
-            this.reportValidity();
-            return;
-        }
-
-        var newProduct = {
-            productID: $("#productID").val().trim(),
-            description: $("#description").val().trim(),
-            category: $("#category").val(),
-            unit: $("#unit").val(),
-            price: Number($("#price").val()),
-            weight: $("#weight").val().trim(),
-            color: $("#color").val().trim()
-        };
-
-        products.push(newProduct);
-        saveProducts();
-
-        this.reset();
-        setNextProductID();
-        displayProducts(products);
-        displayJSON();
-    });
-
-    $("#clearBtn").on("click", function () {
-        setTimeout(function () {
-            setNextProductID();
-        }, 0);
+    $("#reloadProducts").on("click", function () {
+        loadProducts();
     });
 
     $("#search").on("keyup", function () {
         var val = $(this).val().toLowerCase();
 
-        var filtered = products.filter(function (p) {
-            return p.description.toLowerCase().includes(val) ||
-                   p.category.toLowerCase().includes(val) ||
-                   p.productID.toLowerCase().includes(val) ||
-                   p.unit.toLowerCase().includes(val) ||
-                   (p.color && p.color.toLowerCase().includes(val)) ||
-                   (p.weight && p.weight.toLowerCase().includes(val));
+        var filtered = products.filter(function (product) {
+            return (product.description || "").toLowerCase().includes(val) ||
+                   (product.category || "").toLowerCase().includes(val) ||
+                   (product.productID || "").toLowerCase().includes(val) ||
+                   (product.unit || "").toLowerCase().includes(val) ||
+                   (product.color || "").toLowerCase().includes(val) ||
+                   (product.weight || "").toLowerCase().includes(val);
         });
 
         displayProducts(filtered);
@@ -157,65 +115,35 @@ $(document).ready(function () {
     $(document).on("click", ".addToCart", function () {
         var id = $(this).data("id");
 
-        var product = products.find(function (p) {
-            return p.productID === id;
+        var product = products.find(function (item) {
+            return item.productID === id;
         });
 
         if (product) {
             cart.push(product);
+            saveCart();
             displayCart();
+            hideMessage("#checkoutMessage");
         }
     });
 
     $(document).on("click", ".removeFromCart", function () {
         var index = $(this).data("index");
         cart.splice(index, 1);
+        saveCart();
         displayCart();
     });
 
     $("#checkout").on("click", function () {
         if (cart.length === 0) {
-            showCheckoutMessage("Your cart is empty.", "alert-danger");
+            showMessage("#checkoutMessage", "Your cart is empty.", "alert-danger");
             return;
         }
 
-        var cartTotal = 0;
-        cart.forEach(function (item) {
-            cartTotal += Number(item.price);
-        });
-
-        var orderDocument = {
-            customer: {
-                fullName: "Storefront Customer",
-                email: "Not provided"
-            },
-            options: {
-                pickupMethod: "Not selected",
-                paymentMethod: "Not selected",
-                notes: "Submitted from the storefront AJAX button."
-            },
-            cart: cart,
-            total: Number(cartTotal.toFixed(2))
-        };
-
-        $.ajax({
-            url: "http://localhost:3001/api/orders",
-            method: "POST",
-            data: JSON.stringify(orderDocument),
-            contentType: "application/json",
-            success: function (response) {
-                console.log("Success:", response);
-                showCheckoutMessage("Cart sent to the Node.js backend with pending status!", "alert-success");
-            },
-            error: function (xhr, status, error) {
-                console.error("AJAX Error:", status, error);
-                showCheckoutMessage("Error sending cart. Please try again.", "alert-danger");
-            }
-        });
+        saveCart();
+        window.location.href = "/#checkout";
     });
 
-    setNextProductID();
-    displayProducts(products);
+    loadProducts();
     displayCart();
-    displayJSON();
 });
