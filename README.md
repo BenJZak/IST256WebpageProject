@@ -39,14 +39,7 @@ If `mongosh` is not recognized, use the full installed path:
 
 Start MongoDB first using the steps above.
 
-Install frontend dependencies from the project root:
-
-```bash
-npm install
-```
-
-Install server dependencies and start the server:
-
+Start the server from the server folder
 ```bash
 cd server
 npm install
