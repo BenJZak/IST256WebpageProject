@@ -6,4 +6,3 @@ build/
 server/node_modules/
 .env
 server/.env
-.gitignore
