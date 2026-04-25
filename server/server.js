@@ -116,33 +116,6 @@ const starterProducts = [
     weight: "",
     color: ""
   },
-  {
-    productID: "P3",
-    description: "Club Sticker Pack",
-    category: "Accessories",
-    unit: "Each",
-    price: 5,
-    weight: "2 oz",
-    color: "Blue"
-  },
-  {
-    productID: "P4",
-    description: "Study Jam RSVP Pass",
-    category: "Event",
-    unit: "Ticket",
-    price: 8,
-    weight: "",
-    color: ""
-  },
-  {
-    productID: "P5",
-    description: "IST Water Bottle",
-    category: "Accessories",
-    unit: "Each",
-    price: 12,
-    weight: "12 oz",
-    color: "Silver"
-  }
 ];
 
 function asyncHandler(handler) {
