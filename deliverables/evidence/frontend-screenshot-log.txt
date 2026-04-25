@@ -1,0 +1,4 @@
+﻿
+> ist256-l09-project-alpha-fixed@1.0.0 dev
+> parcel index.html --port 1234
+

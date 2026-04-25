@@ -1,0 +1,2 @@
+﻿server running on http://localhost:3001
+mongodb connected to ist256_storefront

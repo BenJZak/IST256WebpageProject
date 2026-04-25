@@ -6,6 +6,10 @@ import StorefrontPage from './pages/StorefrontPage';
 import FinalizationPage from './pages/FinalizationPage';
 import OrderHistoryPage from './pages/OrderHistoryPage';
 import AdminPage from './pages/AdminPage';
+import SignUpPage from './pages/SignUpPage';
+import ReturnsPage from './pages/ReturnsPage';
+import LoginPage from './pages/LoginPage';
+import { clearUser, getStoredUser } from './auth/session';
 
 const emptyCartCheckoutMessage = 'Add at least one product to the cart before going to checkout.';
 
@@ -35,6 +39,14 @@ function getPageFromLocation() {
     return 'store';
   }
 
+  if (hashValue === 'signup' || pathName === '/signup') {
+    return 'signup';
+  }
+
+  if (hashValue === 'login' || pathName === '/login') {
+    return 'login';
+  }
+
   if (hashValue === 'checkout' || pathName === '/finalization') {
     return 'checkout';
   }
@@ -43,12 +55,17 @@ function getPageFromLocation() {
     return 'orders';
   }
 
+  if (hashValue === 'returns' || pathName === '/returns') {
+    return 'returns';
+  }
+
   if (
     hashValue === 'admin' ||
     hashValue === 'admin-review' ||
     hashValue === 'admin-history' ||
     hashValue === 'admin-members' ||
     hashValue === 'admin-products' ||
+    hashValue === 'admin-returns' ||
     pathName === '/admin' ||
     pathName === '/approval' ||
     pathName === '/members'
@@ -96,6 +113,10 @@ function getSectionID() {
     return 'products';
   }
 
+  if (hashValue === 'admin-returns') {
+    return 'returns';
+  }
+
   return '';
 }
 
@@ -104,10 +125,16 @@ function updateOldUrl() {
 
   if (pathName === '/storefront') {
     window.history.replaceState(null, '', '/#store');
+  } else if (pathName === '/signup') {
+    window.history.replaceState(null, '', '/#signup');
+  } else if (pathName === '/login') {
+    window.history.replaceState(null, '', '/#login');
   } else if (pathName === '/finalization') {
     window.history.replaceState(null, '', '/#checkout');
   } else if (pathName === '/orders') {
     window.history.replaceState(null, '', '/#orders');
+  } else if (pathName === '/returns') {
+    window.history.replaceState(null, '', '/#returns');
   } else if (pathName === '/approval') {
     window.history.replaceState(null, '', '/#admin-review');
   } else if (pathName === '/members') {
@@ -120,25 +147,48 @@ function updateOldUrl() {
 export default function App() {
   const [currentPage, setCurrentPage] = useState(getStartingPage);
   const [checkoutNotice, setCheckoutNotice] = useState(getStartingCheckoutNotice);
+  const [authUser, setAuthUser] = useState(getStoredUser);
+
+  function handleLogin(user) {
+    setAuthUser(user);
+  }
+
+  function handleLogout() {
+    clearUser();
+    setAuthUser(null);
+    window.location.hash = 'home';
+  }
 
   function renderCurrentPage() {
     if (currentPage === 'store') {
-      return <StorefrontPage checkoutNotice={checkoutNotice} />;
+      return <StorefrontPage checkoutNotice={checkoutNotice} authUser={authUser} />;
     }
 
     if (currentPage === 'checkout') {
       return <FinalizationPage />;
     }
 
+    if (currentPage === 'signup') {
+      return <SignUpPage />;
+    }
+
+    if (currentPage === 'login') {
+      return <LoginPage authUser={authUser} onLogin={handleLogin} onLogout={handleLogout} />;
+    }
+
     if (currentPage === 'orders') {
       return <OrderHistoryPage />;
     }
 
-    if (currentPage === 'admin') {
-      return <AdminPage />;
+    if (currentPage === 'returns') {
+      return <ReturnsPage />;
     }
 
-    return <HomePage />;
+    if (currentPage === 'admin') {
+      return <AdminPage authUser={authUser} />;
+    }
+
+    return <HomePage authUser={authUser} />;
   }
 
   useEffect(function() {
@@ -166,6 +216,18 @@ export default function App() {
   }, []);
 
   useEffect(function() {
+    function handleUserChange() {
+      setAuthUser(getStoredUser());
+    }
+
+    window.addEventListener('portalUserChanged', handleUserChange);
+
+    return function() {
+      window.removeEventListener('portalUserChanged', handleUserChange);
+    };
+  }, []);
+
+  useEffect(function() {
     const sectionID = getSectionID();
 
     if (sectionID !== '') {
@@ -183,7 +245,7 @@ export default function App() {
 
   return (
     <div className="d-flex flex-column min-vh-100 bg-light-subtle">
-      <Header currentPage={currentPage} />
+      <Header currentPage={currentPage} authUser={authUser} onLogout={handleLogout} />
       <main className="flex-grow-1">
         {renderCurrentPage()}
       </main>

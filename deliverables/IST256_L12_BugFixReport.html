@@ -1,0 +1,66 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>IST 256 L12 Bug Fix Report</title>
+  <style>
+    body { color: #202a35; font-family: Arial, sans-serif; line-height: 1.45; margin: 40px; }
+    h1, h2 { color: #17324d; }
+    h1 { border-bottom: 4px solid #f3c543; padding-bottom: 10px; }
+    table { border-collapse: collapse; margin: 12px 0 24px; width: 100%; }
+    th, td { border: 1px solid #b9c4ce; padding: 8px; text-align: left; vertical-align: top; }
+    th { background: #e7eef5; }
+    .note { background: #fff7d6; border-left: 5px solid #f3c543; padding: 12px; }
+  </style>
+</head>
+<body>
+  <h1>IST 256 L12 Final Integration Bug Fix Report</h1>
+  <p><strong>Project:</strong> Student Club Portal Storefront</p>
+  <p><strong>Due Date:</strong> Sunday, April 26, 2026 by 11:59 PM</p>
+  <p><strong>Report Date:</strong> 2026-04-23</p>
+  <p><strong>Team Members:</strong> Team Member 1 Placeholder, Team Member 2 Placeholder, Team Member 3 Placeholder</p>
+
+  <div class="note">
+    Replace all placeholder names with the real group member names before submission. The assignment states that names must appear on the cover page and contribution section.
+  </div>
+
+  <h2>Contribution Summary</h2>
+  <table>
+    <thead><tr><th>Team Member</th><th>Contribution</th></tr></thead>
+    <tbody>
+      <tr><td>Team Member 1 Placeholder</td><td>Frontend flow testing: Home, Sign Up, Store, Cart, Checkout, Orders, and Returns pages.</td></tr>
+      <tr><td>Team Member 2 Placeholder</td><td>Backend/API integration: Express routes, MongoDB collections, Mongoose schemas, CRUD endpoints.</td></tr>
+      <tr><td>Team Member 3 Placeholder</td><td>Database/testing evidence: MongoDB persistence checks, spreadsheet test plan, screenshots, presentation draft.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Bugs Fixed</h2>
+  <table>
+    <thead><tr><th>Bug</th><th>Fix</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr><td>Backend data was stored in JSON files instead of the required database.</td><td>Replaced file reads/writes with Mongoose models connected to local MongoDB database <code>ist256_storefront</code>.</td><td><code>/api/health</code> and mongosh collection counts show shopper, products, shopping_cart, orders, and returns records.</td></tr>
+      <tr><td>Required collections for shopper, shopping_cart, and returns were missing.</td><td>Added Mongoose schemas and REST endpoints for shopper, shopping_cart, and returns while preserving existing member/order/product URLs.</td><td>API smoke results saved in <code>deliverables/evidence/api-smoke-results.json</code>.</td></tr>
+      <tr><td>Product management only supported add/delete, not update.</td><td>Added <code>PUT /api/products/:productID</code> and frontend edit controls in Admin Product Management.</td><td>CRUD evidence shows temporary product created, updated, and deleted successfully.</td></tr>
+      <tr><td>Cart data only lived in browser localStorage.</td><td>Storefront now syncs cart item snapshots to <code>/api/shopping-cart/:cartSessionID</code> while keeping localStorage as browser state.</td><td>Cart CRUD evidence shows write, read, and delete operations passed.</td></tr>
+      <tr><td>Checkout did not explicitly capture Shipping and Billing details.</td><td>Checkout form now has Shipping and Billing sections and sends those fields with the order payload.</td><td>Order smoke test created an order with shipping and billing fields.</td></tr>
+      <tr><td>Returns workflow was not implemented.</td><td>Added customer Returns page and Admin Returns queue with create, read, update, and delete support.</td><td>Return request smoke test created and resolved return ID R1.</td></tr>
+      <tr><td>Validation errors could allow bad data into the system.</td><td>Added server-side validation for duplicate emails, invalid products, empty cart checkout, invalid order status, and returns for unknown orders.</td><td>Negative tests returned expected HTTP 400, 404, and 409 results.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Verification Performed</h2>
+  <ul>
+    <li><code>node --check server/server.js</code> passed.</li>
+    <li><code>npm run build</code> passed using the existing Parcel setup.</li>
+    <li>MongoDB Server and MongoDB Shell were installed locally.</li>
+    <li>API smoke tests passed for shoppers, products, shopping carts, orders, returns, and validation errors.</li>
+    <li>Test plan spreadsheet and CSV backup were generated in <code>deliverables/</code>.</li>
+  </ul>
+
+  <h2>What Went Well</h2>
+  <p>The project already had a working React storefront and Express route structure, so the final work could focus on real persistence and complete end-to-end data flow.</p>
+
+  <h2>What We Struggled With</h2>
+  <p>The largest challenge was converting browser/file-backed state into database-backed CRUD without breaking the existing frontend navigation and checkout flow.</p>
+</body>
+</html>

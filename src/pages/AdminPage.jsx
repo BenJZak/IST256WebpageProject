@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../api/apiConfig";
+import { getAuthHeaders, userIsAdmin } from "../auth/session";
 
 function getStatusClass(status) {
   if (status === "approved") {
@@ -79,6 +80,22 @@ function getPaymentMethod(order) {
   return "N/A";
 }
 
+function getShippingAddress(order) {
+  if (order.options && order.options.shippingAddress) {
+    return order.options.shippingAddress;
+  }
+
+  return "N/A";
+}
+
+function getBillingName(order) {
+  if (order.options && order.options.billingName) {
+    return order.options.billingName;
+  }
+
+  return "N/A";
+}
+
 function getTotal(order) {
   const total = Number(order.total || 0);
   return total.toFixed(2);
@@ -96,6 +113,8 @@ const emptyProductForm = {
 const emptyMemberForm = {
   name: "",
   email: "",
+  username: "",
+  password: "",
   year: "",
   affiliation: "",
   phone: ""
@@ -105,24 +124,69 @@ function normalizeEmail(email) {
   return email.trim().toLowerCase();
 }
 
-export default function AdminPage() {
+function getReturnStatusClass(status) {
+  if (status === "approved" || status === "resolved") {
+    return "bg-success";
+  }
+
+  if (status === "declined") {
+    return "bg-danger";
+  }
+
+  return "bg-warning text-dark";
+}
+
+function formatReturnStatus(status) {
+  if (status === "resolved") {
+    return "Complete";
+  }
+
+  return formatStatus(status);
+}
+
+export default function AdminPage(props) {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
   const [members, setMembers] = useState([]);
   const [products, setProducts] = useState([]);
+  const [returnsList, setReturnsList] = useState([]);
   const [productFormData, setProductFormData] = useState(emptyProductForm);
   const [productErrors, setProductErrors] = useState({});
   const [productMessage, setProductMessage] = useState({ text: "", type: "" });
+  const [editingProductID, setEditingProductID] = useState(null);
   const [memberFormData, setMemberFormData] = useState(emptyMemberForm);
   const [memberErrors, setMemberErrors] = useState({});
   const [memberMessage, setMemberMessage] = useState({ text: "", type: "" });
   const [editingMemberID, setEditingMemberID] = useState(null);
+  const [returnMessage, setReturnMessage] = useState({ text: "", type: "" });
+  const [resetMessage, setResetMessage] = useState({ text: "", type: "" });
+  const [isResetting, setIsResetting] = useState(false);
   const [message, setMessage] = useState("");
 
-  const memberSubmitLabel = editingMemberID === null ? "Register Member" : "Update Member";
+  let memberSubmitLabel = "Register Member";
+  let productSubmitLabel = "Add Product";
+  let resetButtonText = "Reset Demo Data";
+  let memberPasswordLabel = "Temporary Password *";
+  let memberPasswordPlaceholder = "";
+
+  if (editingMemberID !== null) {
+    memberSubmitLabel = "Update Member";
+    memberPasswordLabel = "New Password";
+    memberPasswordPlaceholder = "Leave blank to keep current password";
+  }
+
+  if (editingProductID !== null) {
+    productSubmitLabel = "Update Product";
+  }
+
+  if (isResetting) {
+    resetButtonText = "Resetting...";
+  }
 
   function loadPendingOrders() {
-    return fetch(API_BASE_URL + "/orders/pending")
+    return fetch(API_BASE_URL + "/orders/pending", {
+      headers: getAuthHeaders()
+    })
       .then(function(res) {
         if (!res.ok) {
           throw new Error("Request failed");
@@ -136,7 +200,9 @@ export default function AdminPage() {
   }
 
   function loadAllOrders() {
-    return fetch(API_BASE_URL + "/orders")
+    return fetch(API_BASE_URL + "/orders", {
+      headers: getAuthHeaders()
+    })
       .then(function(res) {
         if (!res.ok) {
           throw new Error("Request failed");
@@ -150,7 +216,9 @@ export default function AdminPage() {
   }
 
   function loadMembers() {
-    return fetch(API_BASE_URL + "/members")
+    return fetch(API_BASE_URL + "/members", {
+      headers: getAuthHeaders()
+    })
       .then(function(res) {
         if (!res.ok) {
           throw new Error("Request failed");
@@ -177,20 +245,73 @@ export default function AdminPage() {
       });
   }
 
+  function loadReturns() {
+    return fetch(API_BASE_URL + "/returns", {
+      headers: getAuthHeaders()
+    })
+      .then(function(res) {
+        if (!res.ok) {
+          throw new Error("Request failed");
+        }
+
+        return res.json();
+      })
+      .then(function(data) {
+        setReturnsList(data);
+      });
+  }
+
   function loadAdminData() {
-    Promise.all([loadPendingOrders(), loadAllOrders(), loadMembers(), loadProducts()])
+    return Promise.all([loadPendingOrders(), loadAllOrders(), loadMembers(), loadProducts(), loadReturns()])
       .then(function() {
         setMessage("");
       })
       .catch(function() {
-        setMessage("Admin data could not be loaded. Make sure the Node.js server is running.");
+        setMessage("Admin data could not be loaded right now. Please try again in a moment.");
+      });
+  }
+
+  function resetDatabase() {
+    if (!window.confirm("Reset demo data. This clears members, carts, orders, and returns, then reloads the starter products.")) {
+      return;
+    }
+
+    setIsResetting(true);
+    setResetMessage({ text: "", type: "" });
+
+    fetch(API_BASE_URL + "/admin/reset", {
+      method: "POST",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ confirm: "RESET" })
+    })
+      .then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok) {
+            throw new Error(data.message || "Demo data could not be reset.");
+          }
+
+          return data;
+        });
+      })
+      .then(function() {
+        clearProductForm();
+        clearMemberForm();
+        setReturnMessage({ text: "", type: "" });
+        setResetMessage({ text: "Demo data reset. Starter products are ready.", type: "success" });
+        return loadAdminData();
+      })
+      .catch(function(error) {
+        setResetMessage({ text: error.message || "Demo data could not be reset.", type: "danger" });
+      })
+      .finally(function() {
+        setIsResetting(false);
       });
   }
 
   function updateOrderStatus(id, status) {
     fetch(API_BASE_URL + "/orders/" + id, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({ status: status })
     })
       .then(function(res) {
@@ -211,6 +332,7 @@ export default function AdminPage() {
   function clearProductForm() {
     setProductFormData(emptyProductForm);
     setProductErrors({});
+    setEditingProductID(null);
   }
 
   function handleProductChange(event) {
@@ -268,9 +390,18 @@ export default function AdminPage() {
       return;
     }
 
-    fetch(API_BASE_URL + "/products", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+    const isEditing = editingProductID !== null;
+    let url = API_BASE_URL + "/products";
+    let method = "POST";
+
+    if (isEditing) {
+      url = API_BASE_URL + "/products/" + encodeURIComponent(editingProductID);
+      method = "PUT";
+    }
+
+    fetch(url, {
+      method: method,
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify({
         description: productFormData.description.trim(),
         price: Number(productFormData.price),
@@ -291,7 +422,13 @@ export default function AdminPage() {
       })
       .then(function() {
         clearProductForm();
-        setProductMessage({ text: "Product added to the store.", type: "success" });
+        let successMessage = "Product added to the store.";
+
+        if (isEditing) {
+          successMessage = "Product updated in the store.";
+        }
+
+        setProductMessage({ text: successMessage, type: "success" });
         loadProducts();
       })
       .catch(function(error) {
@@ -300,12 +437,13 @@ export default function AdminPage() {
   }
 
   function deleteProduct(productID) {
-    if (!window.confirm("Delete product " + productID + " from the store?")) {
+    if (!window.confirm("Delete product " + productID + " from the store.")) {
       return;
     }
 
     fetch(API_BASE_URL + "/products/" + encodeURIComponent(productID), {
-      method: "DELETE"
+      method: "DELETE",
+      headers: getAuthHeaders()
     })
       .then(function(res) {
         return res.json().then(function(data) {
@@ -317,12 +455,30 @@ export default function AdminPage() {
         });
       })
       .then(function() {
+        if (editingProductID === productID) {
+          clearProductForm();
+        }
+
         setProductMessage({ text: "Product deleted from the store.", type: "success" });
         loadProducts();
       })
       .catch(function(error) {
         setProductMessage({ text: error.message || "Product could not be deleted.", type: "danger" });
       });
+  }
+
+  function editProduct(product) {
+    setProductFormData({
+      description: product.description || "",
+      price: product.price || "",
+      category: product.category || "",
+      unit: product.unit || "",
+      weight: product.weight || "",
+      color: product.color || ""
+    });
+    setEditingProductID(product.productID);
+    setProductErrors({});
+    setProductMessage({ text: "", type: "" });
   }
 
   function clearMemberForm() {
@@ -361,6 +517,18 @@ export default function AdminPage() {
       errors.email = "Enter a valid email address.";
     }
 
+    if (memberFormData.username.trim() === "") {
+      errors.username = "Enter a username.";
+    } else if (!/^[a-z0-9_.-]{3,30}$/.test(memberFormData.username.trim().toLowerCase())) {
+      errors.username = "Use 3 to 30 letters, numbers, dots, dashes, or underscores.";
+    }
+
+    if (editingMemberID === null && memberFormData.password === "") {
+      errors.password = "Enter a temporary password.";
+    } else if (memberFormData.password !== "" && memberFormData.password.length < 6) {
+      errors.password = "Password must be at least 6 characters.";
+    }
+
     if (memberFormData.year.trim() !== "" && Number(memberFormData.year) <= 0) {
       errors.year = "Year or age must be greater than 0.";
     }
@@ -390,17 +558,24 @@ export default function AdminPage() {
     const memberData = {
       name: memberFormData.name.trim(),
       email: normalizeEmail(memberFormData.email),
+      username: memberFormData.username.trim().toLowerCase(),
       year: memberFormData.year.trim(),
       affiliation: memberFormData.affiliation.trim(),
-      phone: memberFormData.phone.trim()
+      phone: memberFormData.phone.trim(),
+      password: memberFormData.password
     };
     const isEditing = editingMemberID !== null;
-    const url = isEditing ? API_BASE_URL + "/members/" + editingMemberID : API_BASE_URL + "/members";
-    const method = isEditing ? "PUT" : "POST";
+    let url = API_BASE_URL + "/members";
+    let method = "POST";
+
+    if (isEditing) {
+      url = API_BASE_URL + "/members/" + editingMemberID;
+      method = "PUT";
+    }
 
     fetch(url, {
       method: method,
-      headers: { "Content-Type": "application/json" },
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(memberData)
     })
       .then(function(res) {
@@ -414,8 +589,14 @@ export default function AdminPage() {
       })
       .then(function() {
         clearMemberForm();
+        let successMessage = "Member registered in the system.";
+
+        if (isEditing) {
+          successMessage = "Member updated in the system.";
+        }
+
         setMemberMessage({
-          text: isEditing ? "Member updated in the system." : "Member registered in the system.",
+          text: successMessage,
           type: "success"
         });
         loadMembers();
@@ -429,6 +610,8 @@ export default function AdminPage() {
     setMemberFormData({
       name: member.name || "",
       email: member.email || "",
+      username: member.username || "",
+      password: "",
       year: member.year || "",
       affiliation: member.affiliation || "",
       phone: member.phone || ""
@@ -439,12 +622,13 @@ export default function AdminPage() {
   }
 
   function deleteMember(member) {
-    if (!window.confirm("Remove " + (member.name || member.email || "this member") + " from the system?")) {
+    if (!window.confirm("Remove " + (member.name || member.email || "this member") + " from the system.")) {
       return;
     }
 
     fetch(API_BASE_URL + "/members/" + member.id, {
-      method: "DELETE"
+      method: "DELETE",
+      headers: getAuthHeaders()
     })
       .then(function(res) {
         return res.json().then(function(data) {
@@ -465,6 +649,66 @@ export default function AdminPage() {
       })
       .catch(function(error) {
         setMemberMessage({ text: error.message || "Member could not be removed.", type: "danger" });
+      });
+  }
+
+  function updateReturnStatus(returnID, status) {
+    let statusLabel = status;
+
+    if (status === "resolved") {
+      statusLabel = "complete";
+    }
+
+    fetch(API_BASE_URL + "/returns/" + encodeURIComponent(returnID), {
+      method: "PUT",
+      headers: getAuthHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        status: status,
+        notes: "Admin marked return as " + statusLabel + "."
+      })
+    })
+      .then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok) {
+            throw new Error(data.message || "Return request could not be updated.");
+          }
+
+          return data;
+        });
+      })
+      .then(function() {
+        setReturnMessage({ text: "Return request updated.", type: "success" });
+        loadReturns();
+      })
+      .catch(function(error) {
+        setReturnMessage({ text: error.message || "Return request could not be updated.", type: "danger" });
+      });
+  }
+
+  function deleteReturnRequest(returnID) {
+    if (!window.confirm("Delete return request " + returnID + ".")) {
+      return;
+    }
+
+    fetch(API_BASE_URL + "/returns/" + encodeURIComponent(returnID), {
+      method: "DELETE",
+      headers: getAuthHeaders()
+    })
+      .then(function(res) {
+        return res.json().then(function(data) {
+          if (!res.ok) {
+            throw new Error(data.message || "Return request could not be deleted.");
+          }
+
+          return data;
+        });
+      })
+      .then(function() {
+        setReturnMessage({ text: "Return request deleted.", type: "success" });
+        loadReturns();
+      })
+      .catch(function(error) {
+        setReturnMessage({ text: error.message || "Return request could not be deleted.", type: "danger" });
       });
   }
 
@@ -500,70 +744,74 @@ export default function AdminPage() {
     }
 
     return (
-      <div className="row g-3">
-        {pendingOrders.map(function(order, index) {
-          return (
-            <div key={order.id || index} className="col-12">
-              <div className="card approval-card shadow-sm">
-                <div className="card-body">
-                  <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                    <div>
-                      <h5 className="card-title mb-1">Order #{order.id || "No ID"}</h5>
-                      <div className="text-muted">Submitted: {formatDate(order.date)}</div>
+      <div className="table-scroll admin-card-scroll">
+        <div className="row g-3">
+          {pendingOrders.map(function(order, index) {
+            return (
+              <div key={order.id || index} className="col-12">
+                <div className="card approval-card shadow-sm">
+                  <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                      <div>
+                        <h5 className="card-title mb-1">Order #{order.id || "No ID"}</h5>
+                        <div className="text-muted">Submitted: {formatDate(order.date)}</div>
+                      </div>
+
+                      <span className="badge status-badge bg-warning text-dark">Pending</span>
                     </div>
 
-                    <span className="badge status-badge bg-warning text-dark">Pending</span>
-                  </div>
+                    <hr />
 
-                  <hr />
+                    <div className="row g-3">
+                      <div className="col-md-4">
+                        <div className="order-label">Customer</div>
+                        <div>{getCustomerName(order)}</div>
+                        <div className="text-muted">{getCustomerEmail(order)}</div>
+                        {getCustomerPhone(order) && <div className="text-muted">{getCustomerPhone(order)}</div>}
+                      </div>
 
-                  <div className="row g-3">
-                    <div className="col-md-4">
-                      <div className="order-label">Customer</div>
-                      <div>{getCustomerName(order)}</div>
-                      <div className="text-muted">{getCustomerEmail(order)}</div>
-                      {getCustomerPhone(order) && <div className="text-muted">{getCustomerPhone(order)}</div>}
+                      <div className="col-md-4">
+                        <div className="order-label">Order Options</div>
+                        <div>Shipping/Pickup: {getPickupMethod(order)}</div>
+                        <div>Location: {getShippingAddress(order)}</div>
+                        <div>Payment: {getPaymentMethod(order)}</div>
+                        <div>Billing: {getBillingName(order)}</div>
+                      </div>
+
+                      <div className="col-md-4">
+                        <div className="order-label">Total</div>
+                        <div className="fw-bold">${getTotal(order)}</div>
+                      </div>
                     </div>
 
-                    <div className="col-md-4">
-                      <div className="order-label">Order Options</div>
-                      <div>Delivery/Pickup: {getPickupMethod(order)}</div>
-                      <div>Payment: {getPaymentMethod(order)}</div>
+                    <div className="mt-3">
+                      <div className="order-label">Items / Details</div>
+                      {renderOrderItems(order, "mb-0")}
                     </div>
 
-                    <div className="col-md-4">
-                      <div className="order-label">Total</div>
-                      <div className="fw-bold">${getTotal(order)}</div>
+                    {renderNotes(order)}
+
+                    <div className="mt-4">
+                      <button
+                        className="btn btn-success me-2"
+                        onClick={function() { updateOrderStatus(order.id, "approved"); }}
+                      >
+                        Approve
+                      </button>
+
+                      <button
+                        className="btn btn-danger"
+                        onClick={function() { updateOrderStatus(order.id, "declined"); }}
+                      >
+                        Decline
+                      </button>
                     </div>
-                  </div>
-
-                  <div className="mt-3">
-                    <div className="order-label">Items / Details</div>
-                    {renderOrderItems(order, "mb-0")}
-                  </div>
-
-                  {renderNotes(order)}
-
-                  <div className="mt-4">
-                    <button
-                      className="btn btn-success me-2"
-                      onClick={function() { updateOrderStatus(order.id, "approved"); }}
-                    >
-                      Approve
-                    </button>
-
-                    <button
-                      className="btn btn-danger"
-                      onClick={function() { updateOrderStatus(order.id, "declined"); }}
-                    >
-                      Decline
-                    </button>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     );
   }
@@ -574,7 +822,7 @@ export default function AdminPage() {
     }
 
     return (
-      <div className="table-responsive">
+      <div className="table-scroll">
         <table className="table table-bordered table-striped align-middle bg-white">
           <thead>
             <tr>
@@ -604,8 +852,10 @@ export default function AdminPage() {
                   </td>
                   <td>{formatDate(order.date)}</td>
                   <td>
-                    <div>Delivery/Pickup: {getPickupMethod(order)}</div>
+                    <div>Shipping/Pickup: {getPickupMethod(order)}</div>
+                    <div>Location: {getShippingAddress(order)}</div>
                     <div>Payment: {getPaymentMethod(order)}</div>
+                    <div>Billing: {getBillingName(order)}</div>
                     {renderOrderItems(order, "mt-2 mb-0")}
                     {renderNotes(order)}
                   </td>
@@ -625,12 +875,13 @@ export default function AdminPage() {
     }
 
     return (
-      <div className="table-responsive">
+      <div className="table-scroll">
         <table className="table table-bordered table-striped align-middle bg-white">
           <thead>
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Username</th>
               <th>Year</th>
               <th>Affiliation</th>
               <th>Phone</th>
@@ -645,6 +896,7 @@ export default function AdminPage() {
                 <tr key={(member.id || member.email || "member") + index}>
                   <td>{member.name || "No name saved"}</td>
                   <td>{member.email || "No email saved"}</td>
+                  <td>{member.username || ""}</td>
                   <td>{member.year || ""}</td>
                   <td>{member.affiliation || ""}</td>
                   <td>{member.phone || ""}</td>
@@ -677,11 +929,17 @@ export default function AdminPage() {
 
   function renderProducts() {
     if (products.length === 0) {
-      return <div className="alert alert-info">No products are available yet.</div>;
+      return (
+        <div className="table-scroll table-scroll-short">
+          <div className="p-3">
+            <div className="alert alert-info mb-0">No products are available yet.</div>
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div className="table-responsive">
+      <div className="table-scroll table-scroll-short">
         <table className="table table-bordered table-striped align-middle bg-white">
           <thead>
             <tr>
@@ -709,6 +967,14 @@ export default function AdminPage() {
                   <td>{product.color || ""}</td>
                   <td>
                     <button
+                      className="btn btn-sm btn-warning me-2"
+                      type="button"
+                      onClick={function() { editProduct(product); }}
+                    >
+                      Edit
+                    </button>
+
+                    <button
                       className="btn btn-sm btn-outline-danger"
                       type="button"
                       onClick={function() { deleteProduct(product.productID); }}
@@ -725,7 +991,108 @@ export default function AdminPage() {
     );
   }
 
-  useEffect(loadAdminData, []);
+  function renderReturns() {
+    if (returnsList.length === 0) {
+      return (
+        <div className="table-scroll table-scroll-short">
+          <div className="p-3">
+            <div className="alert alert-info mb-0">No return requests have been submitted yet.</div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="table-scroll table-scroll-short">
+        <table className="table table-bordered table-striped align-middle bg-white">
+          <thead>
+            <tr>
+              <th>Return ID</th>
+              <th>Order ID</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Reason</th>
+              <th>Notes</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {returnsList.map(function(returnRequest) {
+              return (
+                <tr key={returnRequest.returnID}>
+                  <td>{returnRequest.returnID}</td>
+                  <td>{returnRequest.orderID}</td>
+                  <td>{returnRequest.email}</td>
+                  <td>
+                    <span className={"badge status-badge " + getReturnStatusClass(returnRequest.status)}>
+                      {formatReturnStatus(returnRequest.status)}
+                    </span>
+                  </td>
+                  <td>{returnRequest.reason}</td>
+                  <td>{returnRequest.notes || ""}</td>
+                  <td>
+                    <button
+                      className="btn btn-sm btn-success me-2 mb-1"
+                      type="button"
+                      onClick={function() { updateReturnStatus(returnRequest.returnID, "approved"); }}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      className="btn btn-sm btn-primary me-2 mb-1"
+                      type="button"
+                      onClick={function() { updateReturnStatus(returnRequest.returnID, "resolved"); }}
+                    >
+                      Mark Complete
+                    </button>
+                    <button
+                      className="btn btn-sm btn-danger me-2 mb-1"
+                      type="button"
+                      onClick={function() { updateReturnStatus(returnRequest.returnID, "declined"); }}
+                    >
+                      Decline
+                    </button>
+                    <button
+                      className="btn btn-sm btn-outline-danger mb-1"
+                      type="button"
+                      onClick={function() { deleteReturnRequest(returnRequest.returnID); }}
+                    >
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
+
+  useEffect(function() {
+    if (userIsAdmin(props.authUser)) {
+      loadAdminData();
+    }
+  }, [props.authUser]);
+
+  if (!userIsAdmin(props.authUser)) {
+    return (
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-lg-7">
+            <div className="product-form">
+              <h2 className="mb-3">Admin Login Required</h2>
+              <p className="text-muted">
+                Please sign in as an admin to review orders, manage products, update members, and handle returns.
+              </p>
+              <a href="#login" className="btn btn-primary">Go to Login</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container py-5">
@@ -742,11 +1109,35 @@ export default function AdminPage() {
 
       {message && <div className="alert alert-danger">{message}</div>}
 
+      <section id="database-tools" className="mb-5">
+        <div className="admin-control-panel">
+          <div>
+            <h3 className="mb-1">Database Tools</h3>
+            <p className="text-muted mb-0">Clear demo activity and reload the starter products for a fresh walkthrough.</p>
+          </div>
+
+          <button
+            className="btn btn-outline-danger"
+            type="button"
+            onClick={resetDatabase}
+            disabled={isResetting}
+          >
+            {resetButtonText}
+          </button>
+        </div>
+
+        {resetMessage.text && (
+          <div className={"alert alert-" + resetMessage.type + " mt-3"} role="alert">
+            {resetMessage.text}
+          </div>
+        )}
+      </section>
+
       <section id="products" className="mb-5">
         <div className="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
           <div>
             <h3 className="mb-1">Product Management</h3>
-            <p className="text-muted mb-0">Add products to the shared store list or remove items that are no longer available.</p>
+            <p className="text-muted mb-0">Add, update, or remove products from the store catalog.</p>
           </div>
         </div>
 
@@ -843,7 +1234,7 @@ export default function AdminPage() {
           </div>
 
           <div className="mt-4">
-            <button type="submit" className="btn btn-success">Add Product</button>
+            <button type="submit" className="btn btn-success">{productSubmitLabel}</button>
             <button type="button" className="btn btn-secondary ms-2" onClick={clearProductForm}>Clear</button>
           </div>
 
@@ -862,16 +1253,34 @@ export default function AdminPage() {
         {renderPendingOrders()}
       </section>
 
-      <section id="history">
+      <section id="history" className="mb-5">
         <h3 className="mb-3">Order History</h3>
         {renderAllOrders()}
+      </section>
+
+      <section id="returns" className="mb-5">
+        <div className="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
+          <div>
+            <h3 className="mb-1">Returns</h3>
+            <p className="text-muted mb-0">Review and resolve customer return requests.</p>
+          </div>
+          <button className="btn btn-outline-primary" type="button" onClick={loadReturns}>Reload Returns</button>
+        </div>
+
+        {returnMessage.text && (
+          <div className={"alert alert-" + returnMessage.type} role="alert">
+            {returnMessage.text}
+          </div>
+        )}
+
+        {renderReturns()}
       </section>
 
       <section id="members" className="mt-5">
         <div className="d-flex justify-content-between align-items-end flex-wrap gap-2 mb-3">
           <div>
             <h3 className="mb-1">Member Registration</h3>
-            <p className="text-muted mb-0">Register members and keep their contact information synced with the server.</p>
+            <p className="text-muted mb-0">Register members and keep their contact information up to date.</p>
           </div>
         </div>
 
@@ -903,6 +1312,37 @@ export default function AdminPage() {
                 required
               />
               {memberErrors.email && <div className="invalid-feedback">{memberErrors.email}</div>}
+            </div>
+
+            <div className="col-md-6">
+              <label htmlFor="adminMemberUsername" className="form-label">Username *</label>
+              <input
+                type="text"
+                className={getMemberControlClass("form-control", "username")}
+                id="adminMemberUsername"
+                name="username"
+                value={memberFormData.username}
+                onChange={handleMemberChange}
+                required
+              />
+              {memberErrors.username && <div className="invalid-feedback">{memberErrors.username}</div>}
+            </div>
+
+            <div className="col-md-6">
+              <label htmlFor="adminMemberPassword" className="form-label">
+                {memberPasswordLabel}
+              </label>
+              <input
+                type="password"
+                className={getMemberControlClass("form-control", "password")}
+                id="adminMemberPassword"
+                name="password"
+                value={memberFormData.password}
+                onChange={handleMemberChange}
+                placeholder={memberPasswordPlaceholder}
+                required={editingMemberID === null}
+              />
+              {memberErrors.password && <div className="invalid-feedback">{memberErrors.password}</div>}
             </div>
 
             <div className="col-md-4">

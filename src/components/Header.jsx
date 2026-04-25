@@ -7,6 +7,38 @@ function getNavClass(currentPage, pageName) {
 }
 
 export default function Header(props) {
+  const isAdmin = props.authUser && props.authUser.role === 'admin';
+
+  function renderAdminNavItem() {
+    if (!isAdmin) {
+      return null;
+    }
+
+    return (
+      <li className="nav-item">
+        <a className={getNavClass(props.currentPage, 'admin')} href="#admin">Admin</a>
+      </li>
+    );
+  }
+
+  function renderAccountNavItem() {
+    if (props.authUser) {
+      return (
+        <li className="nav-item">
+          <button className="btn btn-sm btn-outline-dark ms-lg-2" type="button" onClick={props.onLogout}>
+            Logout
+          </button>
+        </li>
+      );
+    }
+
+    return (
+      <li className="nav-item">
+        <a className={getNavClass(props.currentPage, 'login')} href="#login">Login</a>
+      </li>
+    );
+  }
+
   return (
     <nav className="navbar navbar-expand-lg navbar-light site-navbar sticky-top">
       <div className="container">
@@ -41,11 +73,10 @@ export default function Header(props) {
               <a className={getNavClass(props.currentPage, 'store')} href="#store">Store</a>
             </li>
             <li className="nav-item">
-              <a className={getNavClass(props.currentPage, 'orders')} href="#orders">My Orders</a>
+              <a className={getNavClass(props.currentPage, 'orders')} href="#orders">Orders</a>
             </li>
-            <li className="nav-item">
-              <a className={getNavClass(props.currentPage, 'admin')} href="#admin">Admin</a>
-            </li>
+            {renderAdminNavItem()}
+            {renderAccountNavItem()}
           </ul>
         </div>
       </div>

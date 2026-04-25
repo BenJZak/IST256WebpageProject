@@ -1,23 +1,50 @@
 import { useState } from 'react';
 import { defaultFinalization } from '../data/defaultData';
 import { sendFinalizationData } from '../api/finalizationApi';
+import { getStoredUser, saveUser } from '../auth/session';
 
 function getStoredCart() {
   const savedCart = localStorage.getItem('cart');
 
   if (savedCart) {
-    return JSON.parse(savedCart);
+    try {
+      return JSON.parse(savedCart);
+    } catch (error) {
+      return [];
+    }
   }
 
   return [];
 }
 
+function getCartSessionID() {
+  return localStorage.getItem('cartSessionID') || '';
+}
+
+function getInitialFinalizationData() {
+  const user = getStoredUser();
+
+  if (user && user.role === 'member') {
+    return {
+      ...defaultFinalization,
+      fullName: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      billingName: user.name || ''
+    };
+  }
+
+  return defaultFinalization;
+}
+
 export default function FinalizationPage() {
-  const [cart] = useState(getStoredCart);
-  const [formData, setFormData] = useState(defaultFinalization);
+  const [cart, setCart] = useState(getStoredCart);
+  const [formData, setFormData] = useState(getInitialFinalizationData);
+  const [authUser] = useState(getStoredUser);
   const [statusMessage, setStatusMessage] = useState({ text: '', type: '' });
   const [checkoutErrors, setCheckoutErrors] = useState({});
   const [isSending, setIsSending] = useState(false);
+  const [completedOrder, setCompletedOrder] = useState(null);
 
   let cartTotal = 0;
   cart.forEach(function(item) {
@@ -74,11 +101,23 @@ export default function FinalizationPage() {
     }
 
     if (formData.pickupMethod === '') {
-      errors.pickupMethod = 'Choose a delivery or pickup option.';
+      errors.pickupMethod = 'Choose a shipping or pickup option.';
+    }
+
+    if (formData.shippingAddress.trim() === '') {
+      errors.shippingAddress = 'Enter a shipping or pickup location.';
     }
 
     if (formData.paymentMethod === '') {
       errors.paymentMethod = 'Choose a payment method.';
+    }
+
+    if (formData.billingName.trim() === '') {
+      errors.billingName = 'Enter the billing name.';
+    }
+
+    if (formData.billingAddress.trim() === '') {
+      errors.billingAddress = 'Enter the billing address.';
     }
 
     if (!formData.agreeToTerms) {
@@ -117,6 +156,7 @@ export default function FinalizationPage() {
 
     const normalizedEmail = formData.email.trim().toLowerCase();
     const jsonDocument = {
+      cartSessionID: getCartSessionID(),
       status: 'pending',
       customer: {
         fullName: formData.fullName.trim(),
@@ -126,6 +166,9 @@ export default function FinalizationPage() {
       options: {
         pickupMethod: formData.pickupMethod,
         paymentMethod: formData.paymentMethod,
+        shippingAddress: formData.shippingAddress.trim(),
+        billingName: formData.billingName.trim(),
+        billingAddress: formData.billingAddress.trim(),
         notes: formData.notes.trim()
       },
       cart,
@@ -135,9 +178,16 @@ export default function FinalizationPage() {
     setIsSending(true);
 
     sendFinalizationData(jsonDocument)
-    .then(function() {
+    .then(function(savedOrder) {
       localStorage.setItem('customerEmail', normalizedEmail);
-      setStatusMessage({ text: 'Checkout submitted successfully! Your email is registered for My Orders, and an admin will review the order.', type: 'success' });
+      if (authUser && authUser.role === 'member' && !authUser.phone && formData.phone.trim()) {
+        saveUser({ ...authUser, phone: formData.phone.trim() });
+      }
+      localStorage.setItem('cart', JSON.stringify([]));
+      localStorage.removeItem('cartSessionID');
+      setCart([]);
+      setCompletedOrder(savedOrder);
+      setStatusMessage({ text: 'Checkout submitted successfully! Your email is registered for Orders, and an admin will review the order.', type: 'success' });
       setIsSending(false);
     })
     .catch(function() {
@@ -182,6 +232,113 @@ export default function FinalizationPage() {
     );
   }
 
+  function renderSuccessScreen() {
+    return (
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-lg-8">
+            <div className="product-form text-center">
+              <h2 className="mb-3">Checkout Submitted</h2>
+              <p className="lead mb-3">Your order was sent for admin review.</p>
+              {completedOrder && (
+                <div className="alert alert-success text-start">
+                  <div><strong>Order ID:</strong> {completedOrder.id}</div>
+                  <div><strong>Status:</strong> Pending</div>
+                  <div><strong>Total:</strong> ${Number(completedOrder.total || 0).toFixed(2)}</div>
+                </div>
+              )}
+              <div className="d-flex justify-content-center gap-2 flex-wrap">
+                <a className="btn btn-primary" href="#orders">View Orders</a>
+                <a className="btn btn-outline-primary" href="#store">Back to Store</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderLoginRequired() {
+    return (
+      <div className="container py-5">
+        <div className="row justify-content-center">
+          <div className="col-lg-7">
+            <div className="product-form text-center">
+              <h2 className="mb-3">Login Required</h2>
+              <p className="mb-4">Please create an account or log in before checkout.</p>
+              <div className="d-flex justify-content-center gap-2 flex-wrap">
+                <a className="btn btn-primary" href="#login">Login</a>
+                <a className="btn btn-outline-primary" href="#signup">Create Account</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function renderSignedInPhone() {
+    if (formData.phone) {
+      return <div>{formData.phone}</div>;
+    }
+
+    return <div>Add a phone number below so we can contact you about this order.</div>;
+  }
+
+  function renderContactSection() {
+    if (authUser && authUser.role === 'member') {
+      return (
+        <>
+          <div className="col-12">
+            <div className="alert alert-info mb-0">
+              <strong>Signed in as {formData.fullName || authUser.name}.</strong>
+              <div>{formData.email || authUser.email}</div>
+              {renderSignedInPhone()}
+            </div>
+          </div>
+
+          {!authUser.phone && (
+            <div className="col-md-6">
+              <label htmlFor="phone" className="form-label">Phone Number *</label>
+              <input type="tel" className={getControlClass('form-control', 'phone')} id="phone" name="phone" placeholder="555-123-4567" value={formData.phone} onChange={handleChange} required />
+              {checkoutErrors.phone && <div className="invalid-feedback">{checkoutErrors.phone}</div>}
+            </div>
+          )}
+        </>
+      );
+    }
+
+    return (
+      <>
+        <div className="col-md-6">
+          <label htmlFor="fullName" className="form-label">Full Name *</label>
+          <input type="text" className={getControlClass('form-control', 'fullName')} id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
+          {checkoutErrors.fullName && <div className="invalid-feedback">{checkoutErrors.fullName}</div>}
+        </div>
+
+        <div className="col-md-6">
+          <label htmlFor="email" className="form-label">Email *</label>
+          <input type="email" className={getControlClass('form-control', 'email')} id="email" name="email" value={formData.email} onChange={handleChange} required />
+          {checkoutErrors.email && <div className="invalid-feedback">{checkoutErrors.email}</div>}
+        </div>
+
+        <div className="col-md-6">
+          <label htmlFor="phone" className="form-label">Phone Number *</label>
+          <input type="tel" className={getControlClass('form-control', 'phone')} id="phone" name="phone" placeholder="555-123-4567" value={formData.phone} onChange={handleChange} required />
+          {checkoutErrors.phone && <div className="invalid-feedback">{checkoutErrors.phone}</div>}
+        </div>
+      </>
+    );
+  }
+
+  if (!authUser || authUser.role !== 'member') {
+    return renderLoginRequired();
+  }
+
+  if (completedOrder) {
+    return renderSuccessScreen();
+  }
+
   return (
     <div className="container py-5">
       <h2 className="mb-3">Checkout</h2>
@@ -189,30 +346,25 @@ export default function FinalizationPage() {
         Confirm your contact details and send the cart for approval.
       </p>
 
+      {!authUser && (
+        <div className="alert alert-info d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <span>Create a profile first so orders and returns are easier to find later.</span>
+          <a className="btn btn-sm btn-outline-primary" href="#signup">Create Profile</a>
+        </div>
+      )}
+
       <div className="row g-4">
         <div className="col-lg-7">
           <form onSubmit={handleSubmit} className="card shadow-sm border-0 p-4" noValidate>
             <div className="row g-3">
-              <div className="col-md-6">
-                <label htmlFor="fullName" className="form-label">Full Name *</label>
-                <input type="text" className={getControlClass('form-control', 'fullName')} id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
-                {checkoutErrors.fullName && <div className="invalid-feedback">{checkoutErrors.fullName}</div>}
+              {renderContactSection()}
+
+              <div className="col-12">
+                <h3 className="h5 mt-3 mb-0">Shipping</h3>
               </div>
 
               <div className="col-md-6">
-                <label htmlFor="email" className="form-label">Email *</label>
-                <input type="email" className={getControlClass('form-control', 'email')} id="email" name="email" value={formData.email} onChange={handleChange} required />
-                {checkoutErrors.email && <div className="invalid-feedback">{checkoutErrors.email}</div>}
-              </div>
-
-              <div className="col-md-6">
-                <label htmlFor="phone" className="form-label">Phone Number *</label>
-                <input type="tel" className={getControlClass('form-control', 'phone')} id="phone" name="phone" placeholder="555-123-4567" value={formData.phone} onChange={handleChange} required />
-                {checkoutErrors.phone && <div className="invalid-feedback">{checkoutErrors.phone}</div>}
-              </div>
-
-              <div className="col-md-6">
-                <label htmlFor="pickupMethod" className="form-label">Delivery / Pickup Option *</label>
+                <label htmlFor="pickupMethod" className="form-label">Shipping / Pickup Option *</label>
                 <select className={getControlClass('form-select', 'pickupMethod')} id="pickupMethod" name="pickupMethod" value={formData.pickupMethod} onChange={handleChange} required>
                   <option value="">Select Option</option>
                   <option value="Club Pickup">Club Pickup</option>
@@ -220,6 +372,16 @@ export default function FinalizationPage() {
                   <option value="Digital Ticket Email">Digital Ticket Email</option>
                 </select>
                 {checkoutErrors.pickupMethod && <div className="invalid-feedback">{checkoutErrors.pickupMethod}</div>}
+              </div>
+
+              <div className="col-md-6">
+                <label htmlFor="shippingAddress" className="form-label">Shipping / Pickup Location *</label>
+                <input type="text" className={getControlClass('form-control', 'shippingAddress')} id="shippingAddress" name="shippingAddress" placeholder="Campus address, event booth, or email delivery note" value={formData.shippingAddress} onChange={handleChange} required />
+                {checkoutErrors.shippingAddress && <div className="invalid-feedback">{checkoutErrors.shippingAddress}</div>}
+              </div>
+
+              <div className="col-12">
+                <h3 className="h5 mt-3 mb-0">Billing</h3>
               </div>
 
               <div className="col-md-6">
@@ -231,6 +393,18 @@ export default function FinalizationPage() {
                   <option value="Campus Transfer">Campus Transfer</option>
                 </select>
                 {checkoutErrors.paymentMethod && <div className="invalid-feedback">{checkoutErrors.paymentMethod}</div>}
+              </div>
+
+              <div className="col-md-6">
+                <label htmlFor="billingName" className="form-label">Billing Name *</label>
+                <input type="text" className={getControlClass('form-control', 'billingName')} id="billingName" name="billingName" value={formData.billingName} onChange={handleChange} required />
+                {checkoutErrors.billingName && <div className="invalid-feedback">{checkoutErrors.billingName}</div>}
+              </div>
+
+              <div className="col-12">
+                <label htmlFor="billingAddress" className="form-label">Billing Address *</label>
+                <input type="text" className={getControlClass('form-control', 'billingAddress')} id="billingAddress" name="billingAddress" value={formData.billingAddress} onChange={handleChange} required />
+                {checkoutErrors.billingAddress && <div className="invalid-feedback">{checkoutErrors.billingAddress}</div>}
               </div>
 
               <div className="col-12">

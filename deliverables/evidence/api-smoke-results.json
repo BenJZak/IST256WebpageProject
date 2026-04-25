@@ -1,0 +1,26 @@
+﻿{
+    "health":  {
+                   "ok":  true,
+                   "database":  "ist256_storefront",
+                   "collections":  {
+                                       "shopper":  1,
+                                       "products":  4,
+                                       "shopping_cart":  1,
+                                       "orders":  1,
+                                       "returns":  1
+                                   }
+               },
+    "invalidProductPriceStatus":  400,
+    "missingProductCategoryStatus":  400,
+    "emptyCartOrderStatus":  400,
+    "invalidOrderStatus":  400,
+    "unknownReturnOrderStatus":  404,
+    "missingShopperDeleteStatus":  404,
+    "mongoCounts":  {
+                        "shopper":  1,
+                        "products":  4,
+                        "shopping_cart":  1,
+                        "orders":  1,
+                        "returns":  1
+                    }
+}

@@ -175,6 +175,56 @@ main {
   margin-bottom: 4px;
 }
 
+.login-page {
+  background-color: #eef3f7;
+  min-height: calc(100vh - 118px);
+}
+
+.login-panel {
+  background-color: #ffffff;
+  border: 1px solid #d8e0e8;
+  border-top: 5px solid #2f6f9f;
+  border-radius: 8px;
+  box-shadow: 0 16px 36px rgba(23, 37, 51, 0.12);
+  padding: 30px;
+}
+
+.login-panel-header {
+  border-bottom: 1px solid #e5edf4;
+  margin-bottom: 24px;
+  padding-bottom: 18px;
+}
+
+.signup-panel {
+  padding: 32px;
+}
+
+.signup-panel .form-label {
+  color: #17324d;
+  font-weight: 700;
+}
+
+.login-demo-note {
+  background-color: #eef7f3;
+  border: 1px solid #b9d9ca;
+  border-radius: 8px;
+  color: #17324d;
+  font-weight: 600;
+  padding: 12px 14px;
+}
+
+.login-create-row {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.login-create-row a {
+  font-weight: 800;
+}
+
 h2,
 h3,
 h4 {
@@ -188,6 +238,116 @@ h4 {
   border-radius: 8px;
   box-shadow: 0 8px 22px rgba(23, 37, 51, 0.06);
   padding: 22px;
+}
+
+.admin-control-panel {
+  align-items: center;
+  background-color: #ffffff;
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(23, 37, 51, 0.06);
+  display: flex;
+  gap: 18px;
+  justify-content: space-between;
+  padding: 22px;
+}
+
+.admin-scroll-panel {
+  background-color: #ffffff;
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  box-shadow: 0 8px 22px rgba(23, 37, 51, 0.06);
+  max-height: 430px;
+  overflow: auto;
+}
+
+.admin-scroll-panel .table {
+  margin-bottom: 0;
+}
+
+.admin-scroll-panel thead th {
+  background-color: #f7fafc;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.table-scroll {
+  background-color: #ffffff;
+  background-image: linear-gradient(to left, #e6edf4 0, #e6edf4 14px, transparent 14px);
+  border: 1px solid #d8e0e8;
+  border-radius: 8px;
+  height: 240px;
+  max-height: 240px;
+  min-height: 240px;
+  overflow-x: auto !important;
+  overflow-y: scroll !important;
+  position: relative;
+  scrollbar-gutter: stable;
+  scrollbar-color: #2f6f9f #e6edf4;
+  scrollbar-width: thin;
+}
+
+.table-scroll::after {
+  background-color: #2f6f9f;
+  border-radius: 8px;
+  content: "";
+  height: 58px;
+  pointer-events: none;
+  position: absolute;
+  right: 3px;
+  top: 46px;
+  width: 8px;
+  z-index: 5;
+}
+
+.table-scroll:hover::after {
+  background-color: #245878;
+}
+
+.table-scroll-short {
+  height: 150px;
+  max-height: 150px;
+  min-height: 150px;
+}
+
+.table-scroll::-webkit-scrollbar {
+  height: 14px;
+  width: 14px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background-color: #e6edf4;
+  border-radius: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  background-color: #2f6f9f;
+  border: 3px solid #e6edf4;
+  border-radius: 8px;
+}
+
+.table-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #245878;
+}
+
+.table-scroll .table {
+  margin-bottom: 0;
+  min-width: 760px;
+}
+
+.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 2;
+}
+
+.admin-card-scroll {
+  height: 360px;
+  max-height: 360px;
+  min-height: 360px;
+  padding: 14px;
 }
 
 .card {
@@ -256,6 +416,11 @@ footer {
   }
 
   .home-status-strip {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-control-panel {
     align-items: stretch;
     flex-direction: column;
   }

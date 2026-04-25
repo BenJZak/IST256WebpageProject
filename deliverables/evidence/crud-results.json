@@ -1,0 +1,21 @@
+﻿{
+    "shopperCRUD":  {
+                        "deleted":  true,
+                        "created":  1776983717452,
+                        "updated":  "CRUD Shopper Updated"
+                    },
+    "productCRUD":  {
+                        "deleted":  true,
+                        "created":  "P5",
+                        "updated":  "CRUD Temp Product Updated"
+                    },
+    "cartCRUD":  {
+                     "readItems":  1,
+                     "deleted":  true,
+                     "upsertedItems":  1
+                 },
+    "orderCreateDelete":  {
+                              "created":  1776983572000,
+                              "deleted":  true
+                          }
+}

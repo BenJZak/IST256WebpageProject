@@ -1,21 +1,21 @@
 const quickActions = [
   {
     title: 'Store',
-    text: 'Search available products and send selections into the cart.',
+    text: 'Search product details and send selections into the shopping cart.',
     action: 'Open Store',
     href: '#store'
   },
   {
-    title: 'Checkout',
-    text: 'Confirm contact details, choose payment, and send the order for approval.',
-    action: 'Go to Checkout',
-    href: '#checkout'
+    title: 'Orders',
+    text: 'Look up submitted orders and start returns from one place.',
+    action: 'View Orders',
+    href: '#orders'
   },
   {
-    title: 'My Orders',
-    text: 'Look up your submitted orders with your registered checkout email.',
-    action: 'View My Orders',
-    href: '#orders'
+    title: 'Login',
+    text: 'Sign in to check your orders or manage the storefront as staff.',
+    action: 'Login',
+    href: '#login'
   }
 ];
 
@@ -43,10 +43,29 @@ const adminActions = [
     text: 'Add products to the store or remove items that are no longer available.',
     action: 'Manage Products',
     href: '#admin-products'
+  },
+  {
+    title: 'Returns Queue',
+    text: 'Review return requests and mark each request approved, declined, or resolved.',
+    action: 'Review Returns',
+    href: '#admin-returns'
   }
 ];
 
-export default function HomePage() {
+export default function HomePage(props) {
+  const isAdmin = props.authUser && props.authUser.role === 'admin';
+  let statusKicker = 'Staff Access';
+  let statusText = 'Staff can sign in to review orders, manage products, and handle returns.';
+  let adminButtonHref = '#login';
+  let adminButtonText = 'Admin Login';
+
+  if (isAdmin) {
+    statusKicker = 'Order Review';
+    statusText = 'New checkout submissions are sent to admin review before they are marked approved or declined.';
+    adminButtonHref = '#admin-review';
+    adminButtonText = 'Open Admin Review';
+  }
+
   function renderQuickAction(item) {
     return (
       <div className="col-md-4" key={item.title}>
@@ -88,8 +107,8 @@ export default function HomePage() {
             <a href="#store" className="btn btn-light btn-lg">
               Open Store
             </a>
-            <a href="#checkout" className="btn btn-warning btn-lg">
-              Go to Checkout
+            <a href="#orders" className="btn btn-warning btn-lg">
+              View Orders
             </a>
           </div>
         </div>
@@ -111,17 +130,21 @@ export default function HomePage() {
 
             <div className="home-status-strip mb-3">
               <div>
-                <span className="status-kicker">Order Review</span>
-                <strong>New checkout submissions are sent to admin review before they are marked approved or declined.</strong>
+                <span className="status-kicker">{statusKicker}</span>
+                <strong>
+                  {statusText}
+                </strong>
               </div>
-              <a href="#admin-review" className="btn btn-outline-dark">
-                Open Admin Review
+              <a href={adminButtonHref} className="btn btn-outline-dark">
+                {adminButtonText}
               </a>
             </div>
 
-            <div className="row g-3">
-              {adminActions.map(renderAdminAction)}
-            </div>
+            {isAdmin && (
+              <div className="row g-3">
+                {adminActions.map(renderAdminAction)}
+              </div>
+            )}
           </section>
         </div>
       </section>

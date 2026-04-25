@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../api/apiConfig";
+import { getAuthHeaders, getStoredUser } from "../auth/session";
+import ReturnsPage from "./ReturnsPage";
 
 function getStoredCustomerEmail() {
-  const savedEmail = localStorage.getItem("customerEmail");
+  const user = getStoredUser();
 
-  if (savedEmail) {
-    return savedEmail;
+  if (user && user.role === "member" && user.email) {
+    return user.email;
   }
 
   return "";
@@ -17,6 +19,12 @@ function normalizeEmail(email) {
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function buildApiUrl(path, searchKey, searchValue) {
+  const url = new URL(API_BASE_URL + path);
+  url.searchParams.set(searchKey, searchValue);
+  return url.toString();
 }
 
 function getStatusClass(status) {
@@ -69,17 +77,43 @@ function getPaymentMethod(order) {
   return "N/A";
 }
 
+function getShippingAddress(order) {
+  if (order.options && order.options.shippingAddress) {
+    return order.options.shippingAddress;
+  }
+
+  return "N/A";
+}
+
+function getBillingName(order) {
+  if (order.options && order.options.billingName) {
+    return order.options.billingName;
+  }
+
+  return "N/A";
+}
+
 function getTotal(order) {
   const total = Number(order.total || 0);
   return total.toFixed(2);
 }
 
+function getLookupInputClass(lookupError) {
+  if (lookupError) {
+    return "form-control is-invalid";
+  }
+
+  return "form-control";
+}
+
 export default function OrderHistoryPage() {
+  const [authUser] = useState(getStoredUser);
   const [customerEmail, setCustomerEmail] = useState(getStoredCustomerEmail);
   const [lookupEmail, setLookupEmail] = useState(getStoredCustomerEmail);
   const [lookupError, setLookupError] = useState("");
   const [orders, setOrders] = useState([]);
   const [message, setMessage] = useState("");
+  const signedInMember = authUser && authUser.role === "member";
 
   function loadOrders(emailValue) {
     const normalizedEmail = normalizeEmail(emailValue);
@@ -93,7 +127,9 @@ export default function OrderHistoryPage() {
 
     setMessage("");
 
-    fetch(API_BASE_URL + "/members?email=" + encodeURIComponent(normalizedEmail))
+    fetch(buildApiUrl("/members", "email", normalizedEmail), {
+      headers: getAuthHeaders()
+    })
       .then(function(res) {
         if (!res.ok) {
           throw new Error("Request failed");
@@ -111,7 +147,9 @@ export default function OrderHistoryPage() {
           throw new Error("MEMBER_NOT_FOUND");
         }
 
-        return fetch(API_BASE_URL + "/orders?customerEmail=" + encodeURIComponent(normalizedEmail));
+        return fetch(buildApiUrl("/orders", "customerEmail", normalizedEmail), {
+          headers: getAuthHeaders()
+        });
       })
       .then(function(res) {
         if (!res.ok) {
@@ -133,7 +171,7 @@ export default function OrderHistoryPage() {
           return;
         }
 
-        setMessage("Your orders could not be loaded. Make sure the Node.js server is running.");
+        setMessage("Your orders could not be loaded right now. Please try again in a moment.");
       });
   }
 
@@ -143,6 +181,10 @@ export default function OrderHistoryPage() {
   }
 
   function handleUseDifferentEmail() {
+    if (signedInMember) {
+      return;
+    }
+
     localStorage.removeItem("customerEmail");
     setCustomerEmail("");
     setLookupEmail(customerEmail);
@@ -185,7 +227,7 @@ export default function OrderHistoryPage() {
             <label htmlFor="orderEmail" className="form-label">Checkout Email</label>
             <input
               type="email"
-              className={lookupError ? "form-control is-invalid" : "form-control"}
+              className={getLookupInputClass(lookupError)}
               id="orderEmail"
               value={lookupEmail}
               onChange={function(event) {
@@ -200,11 +242,24 @@ export default function OrderHistoryPage() {
 
           <div className="col-md-4">
             <button className="btn btn-primary w-100" type="submit">
-              Find My Orders
+              Find Orders
             </button>
           </div>
         </div>
       </form>
+    );
+  }
+
+  function renderLoginRequired() {
+    return (
+      <div className="product-form text-center">
+        <h2 className="mb-3">Login Required</h2>
+        <p className="mb-4">Please log in to view your orders and returns.</p>
+        <div className="d-flex justify-content-center gap-2 flex-wrap">
+          <a className="btn btn-primary" href="#login">Login</a>
+          <a className="btn btn-outline-primary" href="#signup">Create Account</a>
+        </div>
+      </div>
     );
   }
 
@@ -238,8 +293,10 @@ export default function OrderHistoryPage() {
                   </td>
                   <td>{formatDate(order.date)}</td>
                   <td>
-                    <div>Delivery/Pickup: {getPickupMethod(order)}</div>
+                    <div>Shipping/Pickup: {getPickupMethod(order)}</div>
+                    <div>Location: {getShippingAddress(order)}</div>
                     <div>Payment: {getPaymentMethod(order)}</div>
+                    <div>Billing: {getBillingName(order)}</div>
                     {renderOrderItems(order)}
                     {renderNotes(order)}
                   </td>
@@ -254,7 +311,7 @@ export default function OrderHistoryPage() {
   }
 
   useEffect(function() {
-    if (customerEmail) {
+    if (signedInMember && customerEmail) {
       loadOrders(customerEmail);
     }
   }, []);
@@ -263,34 +320,42 @@ export default function OrderHistoryPage() {
     <div className="container py-5">
       <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
-          <h2 className="mb-1">My Orders</h2>
-          <p className="text-muted mb-0">Look up orders using the email address from checkout.</p>
+          <h2 className="mb-1">Orders</h2>
+          <p className="text-muted mb-0">Review your orders and return requests.</p>
         </div>
 
-        {customerEmail && (
+        {signedInMember && customerEmail && (
           <button className="btn btn-outline-primary" type="button" onClick={function() { loadOrders(customerEmail); }}>
-            Reload My Orders
+            Reload Orders
           </button>
         )}
       </div>
 
-      {!customerEmail && renderLookupForm()}
+      {!signedInMember && renderLoginRequired()}
+
+      {signedInMember && !customerEmail && renderLookupForm()}
 
       {message && <div className="alert alert-danger">{message}</div>}
 
-      {customerEmail && (
+      {signedInMember && customerEmail && (
         <>
           <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
             <p className="mb-0">
               Showing orders for <strong>{customerEmail}</strong>
             </p>
 
-            <button className="btn btn-outline-dark" type="button" onClick={handleUseDifferentEmail}>
-              Use a Different Email
-            </button>
+            {!signedInMember && (
+              <button className="btn btn-outline-dark" type="button" onClick={handleUseDifferentEmail}>
+                Use a Different Email
+              </button>
+            )}
           </div>
 
           {renderOrders()}
+
+          <section className="mt-5">
+            <ReturnsPage embedded />
+          </section>
         </>
       )}
     </div>

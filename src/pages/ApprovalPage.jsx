@@ -82,7 +82,7 @@ export default function ApprovalPage() {
         setMessage("");
       })
       .catch(function() {
-        setMessage("Pending orders could not be loaded. Make sure the Node.js server is running.");
+        setMessage("Pending orders could not be loaded right now. Please try again in a moment.");
       });
   }
 
