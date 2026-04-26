@@ -662,7 +662,11 @@ async function getCollectionCounts() {
 
 async function resetDemoDatabase() {
   await Promise.all([
-    Shopper.deleteMany({ role: { $ne: "admin" } }),
+    Shopper.deleteMany({
+      role: { $ne: "admin" },
+      username: { $ne: "johndoe" },
+      email: { $ne: "johndoe@club.portal" }
+    }),
     Product.deleteMany({}),
     ShoppingCart.deleteMany({}),
     Order.deleteMany({}),
