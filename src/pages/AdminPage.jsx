@@ -144,6 +144,10 @@ function formatReturnStatus(status) {
   return formatStatus(status);
 }
 
+function getRowKey(prefix, value, index) {
+  return prefix + "-" + String(value || "row") + "-" + index;
+}
+
 export default function AdminPage(props) {
   const [pendingOrders, setPendingOrders] = useState([]);
   const [allOrders, setAllOrders] = useState([]);
@@ -338,14 +342,16 @@ export default function AdminPage(props) {
   function handleProductChange(event) {
     const name = event.target.name;
     const value = event.target.value;
-    setProductFormData({ ...productFormData, [name]: value });
+    const nextProductFormData = Object.assign({}, productFormData);
+    nextProductFormData[name] = value;
+    setProductFormData(nextProductFormData);
 
     if (productMessage.text) {
       setProductMessage({ text: "", type: "" });
     }
 
     if (productErrors[name]) {
-      const nextErrors = { ...productErrors };
+      const nextErrors = Object.assign({}, productErrors);
       delete nextErrors[name];
       setProductErrors(nextErrors);
     }
@@ -490,14 +496,16 @@ export default function AdminPage(props) {
   function handleMemberChange(event) {
     const name = event.target.name;
     const value = event.target.value;
-    setMemberFormData({ ...memberFormData, [name]: value });
+    const nextMemberFormData = Object.assign({}, memberFormData);
+    nextMemberFormData[name] = value;
+    setMemberFormData(nextMemberFormData);
 
     if (memberMessage.text) {
       setMemberMessage({ text: "", type: "" });
     }
 
     if (memberErrors[name]) {
-      const nextErrors = { ...memberErrors };
+      const nextErrors = Object.assign({}, memberErrors);
       delete nextErrors[name];
       setMemberErrors(nextErrors);
     }
@@ -721,7 +729,7 @@ export default function AdminPage(props) {
       <ul className={listClassName}>
         {order.cart.map(function(item, itemIndex) {
           return (
-            <li key={(item.productID || "item") + itemIndex}>
+            <li key={getRowKey("order-item", item.productID, itemIndex)}>
               {item.description || "Item"} ({item.productID || "No ID"}) - ${Number(item.price || 0).toFixed(2)}
             </li>
           );
@@ -748,7 +756,7 @@ export default function AdminPage(props) {
         <div className="row g-3">
           {pendingOrders.map(function(order, index) {
             return (
-              <div key={order.id || index} className="col-12">
+              <div key={getRowKey("pending-order", order.id, index)} className="col-12">
                 <div className="card approval-card shadow-sm">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -838,7 +846,7 @@ export default function AdminPage(props) {
           <tbody>
             {allOrders.map(function(order, index) {
               return (
-                <tr key={order.id || index}>
+                <tr key={getRowKey("history-order", order.id, index)}>
                   <td>{order.id || "No ID"}</td>
                   <td>
                     <div>{getCustomerName(order)}</div>
@@ -893,7 +901,7 @@ export default function AdminPage(props) {
           <tbody>
             {members.map(function(member, index) {
               return (
-                <tr key={(member.id || member.email || "member") + index}>
+                <tr key={getRowKey("member", member.id || member.email, index)}>
                   <td>{member.name || "No name saved"}</td>
                   <td>{member.email || "No email saved"}</td>
                   <td>{member.username || ""}</td>
@@ -957,7 +965,7 @@ export default function AdminPage(props) {
           <tbody>
             {products.map(function(product, index) {
               return (
-                <tr key={(product.productID || "product") + index}>
+                <tr key={getRowKey("product", product.productID, index)}>
                   <td>{product.productID || "No ID"}</td>
                   <td>{product.description || "Untitled Product"}</td>
                   <td>{product.category}</td>
@@ -1018,9 +1026,9 @@ export default function AdminPage(props) {
           </thead>
 
           <tbody>
-            {returnsList.map(function(returnRequest) {
+            {returnsList.map(function(returnRequest, index) {
               return (
-                <tr key={returnRequest.returnID}>
+                <tr key={getRowKey("return", returnRequest.returnID, index)}>
                   <td>{returnRequest.returnID}</td>
                   <td>{returnRequest.orderID}</td>
                   <td>{returnRequest.email}</td>

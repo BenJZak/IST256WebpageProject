@@ -25,8 +25,10 @@ export function getStoredUser() {
 export function saveUser(user) {
   localStorage.setItem(sessionKey, JSON.stringify(user));
 
-  if (user && user.email) {
+  if (user && user.role === 'member' && user.email) {
     localStorage.setItem('customerEmail', user.email);
+  } else {
+    localStorage.removeItem('customerEmail');
   }
 
   window.dispatchEvent(new Event('portalUserChanged'));
@@ -45,7 +47,7 @@ export function getAuthHeaders(headers) {
   let nextHeaders = {};
 
   if (headers) {
-    nextHeaders = { ...headers };
+    nextHeaders = Object.assign({}, headers);
   }
 
   if (savedUser && savedUser.token) {

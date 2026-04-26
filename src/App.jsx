@@ -177,7 +177,7 @@ export default function App() {
     }
 
     if (currentPage === 'orders') {
-      return <OrderHistoryPage />;
+      return <OrderHistoryPage authUser={authUser} />;
     }
 
     if (currentPage === 'returns') {

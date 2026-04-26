@@ -49,10 +49,16 @@ function formatStatus(status) {
   return status.charAt(0).toUpperCase() + status.slice(1);
 }
 
+function buildReturnRequest(email) {
+  const request = Object.assign({}, defaultReturnRequest);
+  request.email = email;
+  return request;
+}
+
 export default function ReturnsPage(props) {
   const startingEmail = getStoredCustomerEmail();
   const [authUser] = useState(getStoredUser);
-  const [formData, setFormData] = useState({ ...defaultReturnRequest, email: startingEmail });
+  const [formData, setFormData] = useState(buildReturnRequest(startingEmail));
   const [lookupEmail, setLookupEmail] = useState(startingEmail);
   const [returnsList, setReturnsList] = useState([]);
   const [errors, setErrors] = useState({});
@@ -88,14 +94,16 @@ export default function ReturnsPage(props) {
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
+    const nextFormData = Object.assign({}, formData);
+    nextFormData[name] = value;
+    setFormData(nextFormData);
 
     if (message.text) {
       setMessage({ text: '', type: '' });
     }
 
     if (errors[name]) {
-      const nextErrors = { ...errors };
+      const nextErrors = Object.assign({}, errors);
       delete nextErrors[name];
       setErrors(nextErrors);
     }
@@ -174,7 +182,7 @@ export default function ReturnsPage(props) {
         localStorage.setItem('customerEmail', payload.email);
         setLookupEmail(payload.email);
         setSubmittedReturn(data);
-        setFormData({ ...defaultReturnRequest, email: payload.email });
+        setFormData(buildReturnRequest(payload.email));
         setErrors({});
         setMessage({ text: 'Return request submitted. An admin will review it soon.', type: 'success' });
         loadReturns(payload.email);

@@ -33,6 +33,7 @@ const shopperSchema = new mongoose.Schema({
   name: { type: String, required: true, trim: true },
   email: { type: String, required: true, lowercase: true, trim: true, unique: true },
   username: { type: String, lowercase: true, trim: true, unique: true, sparse: true },
+  role: { type: String, enum: ["member", "admin"], default: "member" },
   passwordHash: { type: String, default: "" },
   passwordSalt: { type: String, default: "" },
   year: { type: String, default: "" },
@@ -100,22 +101,31 @@ const ReturnRequest = mongoose.model("ReturnRequest", returnSchema, "returns");
 const starterProducts = [
   {
     productID: "P1",
-    description: "IST 256 Hoodie",
+    description: "Example 1",
     category: "Apparel",
     unit: "Each",
-    price: 35,
-    weight: "1 lb",
-    color: "Navy"
-  },
-  {
-    productID: "P2",
-    description: "Blue Team Workshop Ticket",
-    category: "Event",
-    unit: "Ticket",
-    price: 15,
+    price: 10,
     weight: "",
     color: ""
   },
+  {
+    productID: "P2",
+    description: "Example 2",
+    category: "Event",
+    unit: "Ticket",
+    price: 20,
+    weight: "",
+    color: ""
+  },
+  {
+    productID: "P3",
+    description: "Example 3",
+    category: "Accessories",
+    unit: "Each",
+    price: 30,
+    weight: "",
+    color: ""
+  }
 ];
 
 function asyncHandler(handler) {
@@ -138,7 +148,7 @@ function cleanDocument(document) {
   if (document.toObject) {
     data = document.toObject();
   } else {
-    data = { ...document };
+    data = Object.assign({}, document);
   }
 
   delete data._id;
@@ -226,10 +236,8 @@ function verifyPassword(password, shopper) {
 }
 
 function signToken(payload) {
-  const tokenPayload = {
-    ...payload,
-    expiresAt: Date.now() + (1000 * 60 * 60 * 8)
-  };
+  const tokenPayload = Object.assign({}, payload);
+  tokenPayload.expiresAt = Date.now() + (1000 * 60 * 60 * 8);
   const encodedPayload = Buffer.from(JSON.stringify(tokenPayload)).toString("base64url");
   const signature = crypto
     .createHmac("sha256", SESSION_SECRET)
@@ -343,9 +351,10 @@ function requireEmailAccess(req, res, email) {
 
 function buildMemberUser(shopper) {
   const cleanShopper = cleanDocument(shopper);
+  const userRole = cleanShopper.role || "member";
 
   return {
-    role: "member",
+    role: userRole,
     id: cleanShopper.id,
     name: cleanShopper.name,
     email: cleanShopper.email,
@@ -354,22 +363,10 @@ function buildMemberUser(shopper) {
     year: cleanShopper.year,
     affiliation: cleanShopper.affiliation,
     token: signToken({
-      role: "member",
+      role: userRole,
       id: cleanShopper.id,
       email: cleanShopper.email,
       username: cleanShopper.username || ""
-    })
-  };
-}
-
-function buildAdminUser() {
-  return {
-    role: "admin",
-    name: "Admin",
-    username: "admin",
-    token: signToken({
-      role: "admin",
-      username: "admin"
     })
   };
 }
@@ -556,6 +553,95 @@ async function seedProductsIfEmpty() {
   }));
 }
 
+async function ensureAdminAccount() {
+  const adminUsername = "admin";
+  const adminEmail = "admin@club.portal";
+  const adminCandidates = await Shopper.find({
+    $or: [
+      { username: adminUsername },
+      { email: adminEmail },
+      { role: "admin" }
+    ]
+  }).sort({ id: 1 });
+  let admin = null;
+
+  if (adminCandidates.length > 0) {
+    admin = adminCandidates[0];
+    const duplicateIDs = adminCandidates.slice(1).map(function(candidate) {
+      return candidate._id;
+    });
+
+    if (duplicateIDs.length > 0) {
+      await Shopper.deleteMany({ _id: { $in: duplicateIDs } });
+    }
+  }
+
+  const adminPasswordFields = createPasswordFields("admin");
+
+  if (!admin) {
+    admin = new Shopper({
+      id: await getNextNumber(Shopper, "id", 1),
+      registeredAt: getNowString()
+    });
+  }
+
+  admin.name = "Admin";
+  admin.email = adminEmail;
+  admin.username = adminUsername;
+  admin.role = "admin";
+  admin.affiliation = "Club Portal Staff";
+  admin.phone = "";
+  admin.year = "";
+  admin.passwordHash = adminPasswordFields.passwordHash;
+  admin.passwordSalt = adminPasswordFields.passwordSalt;
+  await admin.save();
+  return admin;
+}
+
+async function ensureDemoMemberAccount() {
+  const demoUsername = "johndoe";
+  const demoEmail = "johndoe@club.portal";
+  const demoCandidates = await Shopper.find({
+    $or: [
+      { username: demoUsername },
+      { email: demoEmail }
+    ]
+  }).sort({ id: 1 });
+  let demoMember = null;
+
+  if (demoCandidates.length > 0) {
+    demoMember = demoCandidates[0];
+    const duplicateIDs = demoCandidates.slice(1).map(function(candidate) {
+      return candidate._id;
+    });
+
+    if (duplicateIDs.length > 0) {
+      await Shopper.deleteMany({ _id: { $in: duplicateIDs } });
+    }
+  }
+
+  const demoPasswordFields = createPasswordFields("Admin6");
+
+  if (!demoMember) {
+    demoMember = new Shopper({
+      id: await getNextNumber(Shopper, "id", 1),
+      registeredAt: getNowString()
+    });
+  }
+
+  demoMember.name = "John Doe";
+  demoMember.email = demoEmail;
+  demoMember.username = demoUsername;
+  demoMember.role = "member";
+  demoMember.affiliation = "Demo Member";
+  demoMember.phone = "555-123-4567";
+  demoMember.year = "1";
+  demoMember.passwordHash = demoPasswordFields.passwordHash;
+  demoMember.passwordSalt = demoPasswordFields.passwordSalt;
+  await demoMember.save();
+  return demoMember;
+}
+
 async function getCollectionCounts() {
   const collections = await Promise.all([
     Shopper.countDocuments(),
@@ -576,13 +662,15 @@ async function getCollectionCounts() {
 
 async function resetDemoDatabase() {
   await Promise.all([
-    Shopper.deleteMany({}),
+    Shopper.deleteMany({ role: { $ne: "admin" } }),
     Product.deleteMany({}),
     ShoppingCart.deleteMany({}),
     Order.deleteMany({}),
     ReturnRequest.deleteMany({})
   ]);
 
+  await ensureAdminAccount();
+  await ensureDemoMemberAccount();
   await seedProductsIfEmpty();
 }
 
@@ -610,7 +698,7 @@ app.post("/api/admin/reset", asyncHandler(async function(req, res) {
 
   res.json({
     ok: true,
-    message: "Demo data reset. Starter products were reloaded.",
+    message: "Demo data reset. Demo accounts and starter products were reloaded.",
     collections: await getCollectionCounts()
   });
 }));
@@ -621,19 +709,6 @@ app.post(["/api/login", "/api/auth/login"], asyncHandler(async function(req, res
   const password = String(req.body.password || "");
   const loginName = normalizeUsername(req.body.username || req.body.email);
   const email = normalizeEmail(req.body.email || req.body.username);
-
-  if (loginType === "admin" || username === "admin") {
-    if (username === "admin" && password === "admin") {
-      res.json({
-        ok: true,
-        user: buildAdminUser()
-      });
-      return;
-    }
-
-    res.status(401).json({ ok: false, message: "Admin username or password is incorrect" });
-    return;
-  }
 
   if (loginName === "" || password === "") {
     res.status(400).json({ ok: false, message: "Enter your username and password" });
@@ -649,7 +724,12 @@ app.post(["/api/login", "/api/auth/login"], asyncHandler(async function(req, res
   const shopper = await Shopper.findOne({ $or: filters }).lean();
 
   if (!shopper || !verifyPassword(password, shopper)) {
-    res.status(401).json({ ok: false, message: "Member username or password is incorrect" });
+    res.status(401).json({ ok: false, message: "Username or password is incorrect" });
+    return;
+  }
+
+  if ((loginType === "admin" || username === "admin") && shopper.role !== "admin") {
+    res.status(403).json({ ok: false, message: "Admin access is required" });
     return;
   }
 
@@ -675,8 +755,12 @@ app.get(["/api/members", "/api/shoppers"], asyncHandler(async function(req, res)
     }
 
     filter.email = email;
-  } else if (!requireAdmin(req, res)) {
-    return;
+  } else {
+    if (!requireAdmin(req, res)) {
+      return;
+    }
+
+    filter.role = { $ne: "admin" };
   }
 
   const shoppers = await Shopper.find(filter).sort({ registeredAt: -1 }).lean();
@@ -716,27 +800,33 @@ app.post(["/api/members", "/api/shoppers"], asyncHandler(async function(req, res
   }
 
   if (existingByEmail) {
+    const claimedPayload = Object.assign({}, shopperPayload);
+    claimedPayload.id = existingByEmail.id;
+    claimedPayload.role = "member";
+    claimedPayload.registeredAt = existingByEmail.registeredAt || shopperPayload.registeredAt;
+    Object.assign(claimedPayload, createPasswordFields(req.body.password));
+
     const claimedShopper = await Shopper.findOneAndUpdate(
       { id: existingByEmail.id },
-      {
-        ...shopperPayload,
-        id: existingByEmail.id,
-        registeredAt: existingByEmail.registeredAt || shopperPayload.registeredAt,
-        ...createPasswordFields(req.body.password)
-      },
-      { new: true }
+      claimedPayload,
+      { returnDocument: "after" }
     );
     const cleanClaimedShopper = cleanDocument(claimedShopper);
-    res.status(201).json({ ok: true, ...cleanClaimedShopper, user: buildMemberUser(claimedShopper) });
+    const claimedResponse = Object.assign({ ok: true }, cleanClaimedShopper);
+    claimedResponse.user = buildMemberUser(claimedShopper);
+    res.status(201).json(claimedResponse);
     return;
   }
 
-  const shopper = await Shopper.create({
-    ...shopperPayload,
-    ...createPasswordFields(req.body.password)
-  });
+  const createPayload = Object.assign({}, shopperPayload);
+  createPayload.role = "member";
+  Object.assign(createPayload, createPasswordFields(req.body.password));
+
+  const shopper = await Shopper.create(createPayload);
   const cleanShopper = cleanDocument(shopper);
-  res.status(201).json({ ok: true, ...cleanShopper, user: buildMemberUser(shopper) });
+  const createResponse = Object.assign({ ok: true }, cleanShopper);
+  createResponse.user = buildMemberUser(shopper);
+  res.status(201).json(createResponse);
 }));
 
 app.put(["/api/members/:id", "/api/shoppers/:id"], asyncHandler(async function(req, res) {
@@ -797,13 +887,14 @@ app.put(["/api/members/:id", "/api/shoppers/:id"], asyncHandler(async function(r
     return;
   }
 
-  const updatePayload = { ...shopperPayload };
+  const updatePayload = Object.assign({}, shopperPayload);
+  updatePayload.role = existingShopper.role || "member";
 
   if (passwordWasProvided) {
     Object.assign(updatePayload, createPasswordFields(req.body.password));
   }
 
-  const updatedShopper = await Shopper.findOneAndUpdate({ id }, updatePayload, { new: true });
+  const updatedShopper = await Shopper.findOneAndUpdate({ id }, updatePayload, { returnDocument: "after" });
   res.json({ ok: true, member: cleanDocument(updatedShopper), shopper: cleanDocument(updatedShopper) });
 }));
 
@@ -869,7 +960,7 @@ app.put("/api/products/:productID", asyncHandler(async function(req, res) {
   const updatedProduct = await Product.findOneAndUpdate(
     { productID: new RegExp("^" + escapeRegexValue(productID) + "$", "i") },
     productPayload,
-    { new: true }
+    { returnDocument: "after" }
   );
 
   if (!updatedProduct) {
@@ -969,7 +1060,7 @@ app.put("/api/shopping-cart/:cartSessionID", asyncHandler(async function(req, re
   const cart = await ShoppingCart.findOneAndUpdate(
     { cartSessionID },
     cartPayload,
-    { new: true, upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
   );
 
   res.json(cleanDocument(cart));
@@ -1116,7 +1207,7 @@ app.put("/api/orders/:id", asyncHandler(async function(req, res) {
     return;
   }
 
-  const updatedOrder = await Order.findOneAndUpdate({ id }, { status }, { new: true });
+  const updatedOrder = await Order.findOneAndUpdate({ id }, { status }, { returnDocument: "after" });
 
   if (!updatedOrder) {
     res.status(404).json({ ok: false, message: "Order not found" });
@@ -1256,7 +1347,7 @@ app.put("/api/returns/:returnID", asyncHandler(async function(req, res) {
     update.resolvedAt = getNowString();
   }
 
-  const updatedReturn = await ReturnRequest.findOneAndUpdate({ returnID }, update, { new: true });
+  const updatedReturn = await ReturnRequest.findOneAndUpdate({ returnID }, update, { returnDocument: "after" });
 
   if (!updatedReturn) {
     res.status(404).json({ ok: false, message: "Return request not found" });
@@ -1296,6 +1387,8 @@ app.use(function(error, req, res, next) {
 async function startServer() {
   await mongoose.connect(MONGODB_URI);
   await seedProductsIfEmpty();
+  await ensureAdminAccount();
+  await ensureDemoMemberAccount();
 
   app.listen(PORT, function() {
     console.log("server running on http://localhost:" + PORT);

@@ -14,14 +14,16 @@ export default function SignUpPage() {
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
+    const nextFormData = Object.assign({}, formData);
+    nextFormData[name] = value;
+    setFormData(nextFormData);
 
     if (message.text) {
       setMessage({ text: '', type: '' });
     }
 
     if (errors[name]) {
-      const nextErrors = { ...errors };
+      const nextErrors = Object.assign({}, errors);
       delete nextErrors[name];
       setErrors(nextErrors);
     }

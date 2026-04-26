@@ -37,7 +37,9 @@ function getStoredCustomerEmail() {
 }
 
 export default function StorefrontPage(props) {
+  const signedInUser = Boolean(props.authUser && props.authUser.token);
   const signedInMember = props.authUser && props.authUser.role === 'member';
+  const signedInAdmin = props.authUser && props.authUser.role === 'admin';
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState(getStoredCart);
   const [cartSessionID, setCartSessionID] = useState(getCartSessionID);
@@ -165,7 +167,7 @@ export default function StorefrontPage(props) {
   }
 
   useEffect(function() {
-    if (!signedInMember) {
+    if (!signedInUser) {
       setProducts([]);
       setMessage('');
       setCartMessage('');
@@ -174,11 +176,20 @@ export default function StorefrontPage(props) {
     }
 
     loadProducts();
-    loadServerCart();
+
+    if (signedInMember) {
+      loadServerCart();
+    } else {
+      setCart([]);
+      setCartMessage('');
+      setHasLoadedServerCart(false);
+    }
   }, [props.authUser]);
 
   useEffect(function() {
-    localStorage.setItem('cart', JSON.stringify(cart));
+    if (signedInMember) {
+      localStorage.setItem('cart', JSON.stringify(cart));
+    }
 
     if (hasLoadedServerCart && signedInMember) {
       syncCart(cart);
@@ -201,6 +212,10 @@ export default function StorefrontPage(props) {
   }
 
   function handleAddToCart(productID) {
+    if (!signedInMember) {
+      return;
+    }
+
     const product = products.find(function(item) {
       return item.productID === productID;
     });
@@ -211,6 +226,10 @@ export default function StorefrontPage(props) {
   }
 
   function handleRemoveFromCart(index) {
+    if (!signedInMember) {
+      return;
+    }
+
     setCart(cart.filter(function(item, currentIndex) {
       return currentIndex !== index;
     }));
@@ -244,17 +263,27 @@ export default function StorefrontPage(props) {
             <p><strong>Price:</strong> ${Number(product.price || 0).toFixed(2)}</p>
             <p><strong>Weight:</strong> {product.weight || 'N/A'}</p>
             <p><strong>Color:</strong> {product.color || 'N/A'}</p>
-            <button
-              className="btn btn-sm btn-primary"
-              type="button"
-              onClick={function() { handleAddToCart(product.productID); }}
-            >
-              Send to Cart
-            </button>
+            {renderProductAction(product)}
           </div>
         </div>
       );
     });
+  }
+
+  function renderProductAction(product) {
+    if (!signedInMember) {
+      return null;
+    }
+
+    return (
+      <button
+        className="btn btn-sm btn-primary"
+        type="button"
+        onClick={function() { handleAddToCart(product.productID); }}
+      >
+        Send to Cart
+      </button>
+    );
   }
 
   function renderCartItems() {
@@ -306,6 +335,30 @@ export default function StorefrontPage(props) {
     );
   }
 
+  function renderCartPanel() {
+    if (signedInAdmin) {
+      return (
+        <div className="product-form">
+          <h4>Admin Store View</h4>
+          <p className="text-muted">You can review the customer store here. Product edits are handled from Admin Review.</p>
+          <a className="btn btn-outline-primary" href="#admin">Open Product Management</a>
+        </div>
+      );
+    }
+
+    return (
+      <div>
+        <div className="d-flex justify-content-between align-items-center gap-2">
+          <h4>Shopping Cart</h4>
+          <span className="badge text-bg-light">{cart.length} item(s)</span>
+        </div>
+        {renderCartItems()}
+
+        {renderCheckoutButton()}
+      </div>
+    );
+  }
+
   function renderLoginRequired() {
     return (
       <div className="container py-5">
@@ -325,7 +378,7 @@ export default function StorefrontPage(props) {
     );
   }
 
-  if (!signedInMember) {
+  if (!signedInUser) {
     return renderLoginRequired();
   }
 
@@ -365,13 +418,7 @@ export default function StorefrontPage(props) {
         </div>
 
         <div className="col-lg-5 mb-4">
-          <div className="d-flex justify-content-between align-items-center gap-2">
-            <h4>Shopping Cart</h4>
-            <span className="badge text-bg-light">{cart.length} item(s)</span>
-          </div>
-          {renderCartItems()}
-
-          {renderCheckoutButton()}
+          {renderCartPanel()}
         </div>
       </div>
     </div>

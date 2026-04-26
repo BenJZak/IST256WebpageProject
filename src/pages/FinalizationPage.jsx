@@ -25,13 +25,12 @@ function getInitialFinalizationData() {
   const user = getStoredUser();
 
   if (user && user.role === 'member') {
-    return {
-      ...defaultFinalization,
-      fullName: user.name || '',
-      email: user.email || '',
-      phone: user.phone || '',
-      billingName: user.name || ''
-    };
+    const startingData = Object.assign({}, defaultFinalization);
+    startingData.fullName = user.name || '';
+    startingData.email = user.email || '';
+    startingData.phone = user.phone || '';
+    startingData.billingName = user.name || '';
+    return startingData;
   }
 
   return defaultFinalization;
@@ -59,17 +58,16 @@ export default function FinalizationPage() {
       fieldValue = checked;
     }
 
-    setFormData({
-      ...formData,
-      [name]: fieldValue
-    });
+    const nextFormData = Object.assign({}, formData);
+    nextFormData[name] = fieldValue;
+    setFormData(nextFormData);
 
     if (statusMessage.text) {
       setStatusMessage({ text: '', type: '' });
     }
 
     if (checkoutErrors[name]) {
-      const nextErrors = { ...checkoutErrors };
+      const nextErrors = Object.assign({}, checkoutErrors);
       delete nextErrors[name];
       setCheckoutErrors(nextErrors);
     }
@@ -129,7 +127,7 @@ export default function FinalizationPage() {
 
   function getControlClass(baseClass, fieldName) {
     if (checkoutErrors[fieldName]) {
-      return `${baseClass} is-invalid`;
+      return baseClass + ' is-invalid';
     }
 
     return baseClass;
@@ -181,7 +179,9 @@ export default function FinalizationPage() {
     .then(function(savedOrder) {
       localStorage.setItem('customerEmail', normalizedEmail);
       if (authUser && authUser.role === 'member' && !authUser.phone && formData.phone.trim()) {
-        saveUser({ ...authUser, phone: formData.phone.trim() });
+        const nextAuthUser = Object.assign({}, authUser);
+        nextAuthUser.phone = formData.phone.trim();
+        saveUser(nextAuthUser);
       }
       localStorage.setItem('cart', JSON.stringify([]));
       localStorage.removeItem('cartSessionID');
@@ -424,7 +424,7 @@ export default function FinalizationPage() {
             </div>
 
             {statusMessage.text && (
-              <div className={`alert alert-${statusMessage.type} mt-4`} role="alert">
+              <div className={'alert alert-' + statusMessage.type + ' mt-4'} role="alert">
                 {statusMessage.text}
               </div>
             )}

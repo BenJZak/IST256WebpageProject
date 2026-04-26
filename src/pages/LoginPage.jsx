@@ -14,7 +14,9 @@ export default function LoginPage(props) {
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
+    const nextFormData = Object.assign({}, formData);
+    nextFormData[name] = value;
+    setFormData(nextFormData);
 
     if (message.text) {
       setMessage({ text: '', type: '' });
@@ -166,7 +168,8 @@ export default function LoginPage(props) {
                 </div>
 
                 <div className="login-demo-note">
-                  Demo account: <strong>admin</strong> / <strong>admin</strong>
+                  <div>Demo admin account: <strong>admin:admin</strong></div>
+                  <div>Demo normal account: <strong>JohnDoe:Admin6</strong></div>
                 </div>
 
                 {message.text && (

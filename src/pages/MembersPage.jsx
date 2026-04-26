@@ -40,7 +40,9 @@ export default function MembersPage() {
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setFormData({ ...formData, [name]: value });
+    const nextFormData = Object.assign({}, formData);
+    nextFormData[name] = value;
+    setFormData(nextFormData);
 
     if (message.text) {
       setMessage({ text: '', type: '' });
@@ -75,7 +77,7 @@ export default function MembersPage() {
       phone: formData.phone.trim()
     };
 
-    let nextMembers = [...membersList];
+    let nextMembers = membersList.slice();
 
     if (currentEditRow === -1) {
       nextMembers.push(memberData);
@@ -95,7 +97,9 @@ export default function MembersPage() {
       return;
     }
 
-    const nextMembers = membersList.filter((_, currentIndex) => currentIndex !== index);
+    const nextMembers = membersList.filter(function(item, currentIndex) {
+      return currentIndex !== index;
+    });
     saveMembers(nextMembers);
 
     if (currentEditRow === index) {
@@ -121,23 +125,25 @@ export default function MembersPage() {
       );
     }
 
-    return membersList.map((item, index) => (
-      <tr key={`${item.email}-${index}`}>
-        <td>{item.name}</td>
-        <td>{item.email}</td>
-        <td>{item.year}</td>
-        <td>{item.affiliation}</td>
-        <td>{item.phone || ''}</td>
-        <td>
-          <button className="btn btn-warning btn-sm me-2" type="button" onClick={() => handleEdit(index)}>
-            Edit
-          </button>
-          <button className="btn btn-danger btn-sm" type="button" onClick={() => handleDelete(index)}>
-            Delete
-          </button>
-        </td>
-      </tr>
-    ));
+    return membersList.map(function(item, index) {
+      return (
+        <tr key={item.email + '-' + index}>
+          <td>{item.name}</td>
+          <td>{item.email}</td>
+          <td>{item.year}</td>
+          <td>{item.affiliation}</td>
+          <td>{item.phone || ''}</td>
+          <td>
+            <button className="btn btn-warning btn-sm me-2" type="button" onClick={function() { handleEdit(index); }}>
+              Edit
+            </button>
+            <button className="btn btn-danger btn-sm" type="button" onClick={function() { handleDelete(index); }}>
+              Delete
+            </button>
+          </td>
+        </tr>
+      );
+    });
   }
 
   return (
@@ -145,7 +151,7 @@ export default function MembersPage() {
       <h2 className="mb-4">Member Registration</h2>
 
       {message.text && (
-        <div className={`alert alert-${message.type}`} role="alert">
+        <div className={'alert alert-' + message.type} role="alert">
           {message.text}
         </div>
       )}

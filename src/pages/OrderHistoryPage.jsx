@@ -3,9 +3,7 @@ import { API_BASE_URL } from "../api/apiConfig";
 import { getAuthHeaders, getStoredUser } from "../auth/session";
 import ReturnsPage from "./ReturnsPage";
 
-function getStoredCustomerEmail() {
-  const user = getStoredUser();
-
+function getStoredCustomerEmail(user) {
   if (user && user.role === "member" && user.email) {
     return user.email;
   }
@@ -106,14 +104,30 @@ function getLookupInputClass(lookupError) {
   return "form-control";
 }
 
-export default function OrderHistoryPage() {
-  const [authUser] = useState(getStoredUser);
-  const [customerEmail, setCustomerEmail] = useState(getStoredCustomerEmail);
-  const [lookupEmail, setLookupEmail] = useState(getStoredCustomerEmail);
+function getRowKey(prefix, value, index) {
+  return prefix + "-" + String(value || "row") + "-" + index;
+}
+
+export default function OrderHistoryPage(props) {
+  let authUser = null;
+
+  if (props && props.authUser) {
+    authUser = props.authUser;
+  } else {
+    authUser = getStoredUser();
+  }
+
+  const [customerEmail, setCustomerEmail] = useState(function() {
+    return getStoredCustomerEmail(authUser);
+  });
+  const [lookupEmail, setLookupEmail] = useState(function() {
+    return getStoredCustomerEmail(authUser);
+  });
   const [lookupError, setLookupError] = useState("");
   const [orders, setOrders] = useState([]);
   const [message, setMessage] = useState("");
   const signedInMember = authUser && authUser.role === "member";
+  const signedInAdmin = authUser && authUser.role === "admin";
 
   function loadOrders(emailValue) {
     const normalizedEmail = normalizeEmail(emailValue);
@@ -175,6 +189,30 @@ export default function OrderHistoryPage() {
       });
   }
 
+  function loadAdminOrders() {
+    setMessage("");
+
+    fetch(API_BASE_URL + "/orders", {
+      headers: getAuthHeaders()
+    })
+      .then(function(res) {
+        if (!res.ok) {
+          throw new Error("Request failed");
+        }
+
+        return res.json();
+      })
+      .then(function(data) {
+        setOrders(data);
+        setLookupError("");
+        setMessage("");
+      })
+      .catch(function() {
+        setOrders([]);
+        setMessage("Orders could not be loaded right now. Please try again in a moment.");
+      });
+  }
+
   function handleLookupSubmit(event) {
     event.preventDefault();
     loadOrders(lookupEmail);
@@ -202,7 +240,7 @@ export default function OrderHistoryPage() {
       <ul className="mt-2 mb-0">
         {order.cart.map(function(item, itemIndex) {
           return (
-            <li key={(item.productID || "item") + itemIndex}>
+            <li key={getRowKey("order-item", item.productID, itemIndex)}>
               {item.description || "Item"} ({item.productID || "No ID"}) - ${Number(item.price || 0).toFixed(2)}
             </li>
           );
@@ -263,9 +301,17 @@ export default function OrderHistoryPage() {
     );
   }
 
+  function getNoOrdersMessage() {
+    if (signedInAdmin) {
+      return "No orders have been submitted yet.";
+    }
+
+    return "No orders were found for " + customerEmail + ".";
+  }
+
   function renderOrders() {
     if (orders.length === 0) {
-      return <div className="alert alert-info">No orders were found for {customerEmail}.</div>;
+      return <div className="alert alert-info">{getNoOrdersMessage()}</div>;
     }
 
     return (
@@ -284,7 +330,7 @@ export default function OrderHistoryPage() {
           <tbody>
             {orders.map(function(order, index) {
               return (
-                <tr key={order.id || index}>
+                <tr key={getRowKey("order", order.id, index)}>
                   <td>{order.id || "No ID"}</td>
                   <td>
                     <span className={"badge status-badge " + getStatusClass(order.status)}>
@@ -310,11 +356,68 @@ export default function OrderHistoryPage() {
     );
   }
 
+  function renderReloadButton() {
+    if (signedInAdmin) {
+      return (
+        <button className="btn btn-outline-primary" type="button" onClick={loadAdminOrders}>
+          Reload Orders
+        </button>
+      );
+    }
+
+    if (signedInMember && customerEmail) {
+      return (
+        <button className="btn btn-outline-primary" type="button" onClick={function() { loadOrders(customerEmail); }}>
+          Reload Orders
+        </button>
+      );
+    }
+
+    return null;
+  }
+
+  function renderAdminOrders() {
+    return (
+      <>
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+          <p className="mb-0">
+            Showing all submitted orders for <strong>admin review</strong>
+          </p>
+          <a className="btn btn-outline-dark" href="#admin-history">Open Admin History</a>
+        </div>
+
+        {renderOrders()}
+      </>
+    );
+  }
+
   useEffect(function() {
+    if (!authUser) {
+      setCustomerEmail("");
+      setLookupEmail("");
+      setLookupError("");
+      setOrders([]);
+      setMessage("");
+      return;
+    }
+
+    if (signedInAdmin) {
+      loadAdminOrders();
+      return;
+    }
+
+    if (signedInMember && authUser.email && customerEmail !== authUser.email) {
+      setCustomerEmail(authUser.email);
+      setLookupEmail(authUser.email);
+      setOrders([]);
+      setMessage("");
+      return;
+    }
+
     if (signedInMember && customerEmail) {
       loadOrders(customerEmail);
     }
-  }, []);
+  }, [props.authUser, customerEmail]);
 
   return (
     <div className="container py-5">
@@ -324,14 +427,12 @@ export default function OrderHistoryPage() {
           <p className="text-muted mb-0">Review your orders and return requests.</p>
         </div>
 
-        {signedInMember && customerEmail && (
-          <button className="btn btn-outline-primary" type="button" onClick={function() { loadOrders(customerEmail); }}>
-            Reload Orders
-          </button>
-        )}
+        {renderReloadButton()}
       </div>
 
-      {!signedInMember && renderLoginRequired()}
+      {!authUser && renderLoginRequired()}
+
+      {signedInAdmin && renderAdminOrders()}
 
       {signedInMember && !customerEmail && renderLookupForm()}
 
