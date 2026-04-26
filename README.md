@@ -36,6 +36,7 @@ npm start
 Open a second terminal from the project root for the React app:
 
 ```powershell
+cd ~
 npm install
 npm start
 ```
